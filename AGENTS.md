@@ -14,7 +14,7 @@ Komodo-managed observability stack for Ahara services running on TrueNAS.
 ## Stack
 
 - Grafana for dashboards and alerting
-- Grafana Alloy as the OTLP receiver and telemetry router
+- vmagent as the local stack and host metrics scraper
 - VictoriaMetrics as the primary metrics backend
 - Loki as the log backend
 - Tempo as the trace backend
@@ -24,8 +24,9 @@ Komodo-managed observability stack for Ahara services running on TrueNAS.
 
 - Grafana: `192.168.66.3:30038`
 - Loki API: `192.168.66.3:3100`
-- TrueNAS Alloy OTLP gRPC: `192.168.66.3:4317`
-- TrueNAS Alloy OTLP HTTP: `192.168.66.3:4318`
+- Tempo OTLP gRPC: `192.168.66.3:4317`
+- Tempo OTLP HTTP: `192.168.66.3:4318`
+- VictoriaMetrics remote write/API: `192.168.66.3:8428`
 - Influx compatibility endpoint: `192.168.66.3:18086`
 
 AWS Lambdas should use the reverse-proxy OTLP gateway published in SSM by

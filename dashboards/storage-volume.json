@@ -69,7 +69,7 @@
         {
           "refId": "B",
           "expr": "sum(rate(otelcol_receiver_accepted_spans_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "alloy accepted spans/sec"
+          "legendFormat": "reverse proxy accepted spans/sec"
         }
       ],
       "fieldConfig": {
@@ -102,7 +102,7 @@
         {
           "refId": "B",
           "expr": "sum(rate(otelcol_receiver_accepted_metric_points_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "alloy accepted metric points/sec"
+          "legendFormat": "reverse proxy accepted metric points/sec"
         }
       ],
       "fieldConfig": {

@@ -12,8 +12,8 @@ dashboards:
 	find dashboards -name '*.json' -print0 | xargs -0 -n1 jq empty
 
 required-files:
-	test -f config/alloy/config.alloy
 	test -f config/loki/loki.yaml
 	test -f config/tempo/tempo.yaml
+	test -f config/vmagent/prometheus.yml
 	test -f config/grafana/provisioning/datasources/datasources.yaml
 	test -f config/grafana/provisioning/dashboards/dashboards.yaml

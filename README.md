@@ -11,7 +11,7 @@ Komodo to deploy upstream images directly.
 | Service | Purpose |
 | --- | --- |
 | Grafana | Dashboards, Explore, alerting |
-| Alloy | OTLP receiver and routing pipeline |
+| vmagent | Local stack and host metrics scraper |
 | VictoriaMetrics | Primary Prometheus-compatible metrics backend |
 | Loki | OTLP log storage |
 | Tempo | OTLP trace storage |
@@ -36,7 +36,7 @@ truenas_compose_path: compose.yaml
 
 Switch `truenas_compose_path` to `compose.cloudwatch.yaml` to run Grafana only.
 In that mode, Grafana can still use the provisioned CloudWatch datasource, but
-local Loki, Tempo, VictoriaMetrics, Alloy, InfluxDB, and node-exporter are not
+local Loki, Tempo, VictoriaMetrics, vmagent, InfluxDB, and node-exporter are not
 started.
 
 Grafana uses AWS SDK default credential resolution for CloudWatch. On TrueNAS,
@@ -61,8 +61,10 @@ OTEL_LOGS_EXPORTER=otlp
 OTEL_EXPORTER_OTLP_ENDPOINT=<value of /ahara/observability/otlp-http-endpoint>
 ```
 
-The gateway runs on the existing reverse proxy EC2 instance and exports to this
-TrueNAS stack. Producers do not need direct LAN/VPN coupling.
+The gateway runs on the existing reverse proxy EC2 instance and exports directly
+to Loki, Tempo, and VictoriaMetrics in this TrueNAS stack. Producers do not need
+direct LAN/VPN coupling.
 
 EC2 host agents send Loki push traffic to the same reverse proxy host. Only the
-reverse proxy writes across the VPN to the TrueNAS Loki and Alloy endpoints.
+reverse proxy writes across the VPN to the TrueNAS Loki, Tempo, and
+VictoriaMetrics endpoints.

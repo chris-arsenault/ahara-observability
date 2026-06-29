@@ -33,31 +33,6 @@ services:
     networks:
       - observability
 
-  alloy:
-    image: grafana/alloy:latest
-    container_name: ahara-alloy
-    init: true
-    restart: unless-stopped
-    stop_grace_period: 30s
-    security_opt:
-      - no-new-privileges:true
-    command:
-      - run
-      - --server.http.listen-addr=0.0.0.0:12345
-      - /etc/alloy/config.alloy
-    depends_on:
-      - victoriametrics
-      - loki
-      - tempo
-    ports:
-      - "192.168.66.3:4317:4317"
-      - "192.168.66.3:4318:4318"
-    volumes:
-      - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /mnt/apps/apps/ahara-observability/alloy:/var/lib/alloy
-    networks:
-      - observability
-
   victoriametrics:
     image: victoriametrics/victoria-metrics:latest
     container_name: ahara-victoriametrics
@@ -70,8 +45,30 @@ services:
       - -storageDataPath=/storage
       - -retentionPeriod=12
       - -httpListenAddr=:8428
+    ports:
+      - "192.168.66.3:8428:8428"
     volumes:
       - /mnt/apps/apps/ahara-observability/victoriametrics:/storage
+    networks:
+      - observability
+
+  vmagent:
+    image: victoriametrics/vmagent:latest
+    container_name: ahara-vmagent
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - -promscrape.config=/etc/vmagent/prometheus.yml
+      - -remoteWrite.url=http://victoriametrics:8428/api/v1/write
+      - -remoteWrite.tmpDataPath=/vmagent-remotewrite-data
+    depends_on:
+      - victoriametrics
+    volumes:
+      - ./config/vmagent/prometheus.yml:/etc/vmagent/prometheus.yml:ro
+      - /mnt/apps/apps/ahara-observability/vmagent:/vmagent-remotewrite-data
     networks:
       - observability
 
@@ -103,6 +100,9 @@ services:
       - no-new-privileges:true
     command:
       - -config.file=/etc/tempo/tempo.yaml
+    ports:
+      - "192.168.66.3:4317:4317"
+      - "192.168.66.3:4318:4318"
     volumes:
       - ./config/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - /mnt/apps/apps/ahara-observability/tempo:/var/tempo

@@ -15,7 +15,7 @@
   "panels": [
     {
       "id": 1,
-      "title": "Alloy Accepted Spans",
+      "title": "Reverse Proxy Collector Accepted Spans",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -43,7 +43,7 @@
     },
     {
       "id": 2,
-      "title": "Alloy Dropped Telemetry",
+      "title": "Reverse Proxy Collector Send Failures",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -127,4 +127,3 @@
     }
   ]
 }
-

@@ -23,7 +23,7 @@ redeploy.
 
 ## OTLP Ingestion
 
-TrueNAS Alloy accepts OTLP from the AWS reverse-proxy gateway on the LAN:
+TrueNAS Tempo accepts OTLP from the AWS reverse-proxy gateway on the LAN:
 
 ```text
 grpc: 192.168.66.3:4317
@@ -36,8 +36,8 @@ Ahara Lambdas should use the AWS-private endpoint published by `ahara-infra`:
 /ahara/observability/otlp-http-endpoint
 ```
 
-Do not point Lambdas directly at the TrueNAS address. The reverse proxy is the
-gateway and owns bounded batching/retry across the LAN boundary.
+Do not point Lambdas directly at the TrueNAS address. The reverse proxy Alloy
+gateway owns collection, batching, retry, and routing across the LAN boundary.
 
 ## Host Log Ingestion
 
@@ -66,7 +66,7 @@ Tune Loki and Tempo retention after real ingestion volume is known.
 Use the `Ahara Storage Volume` dashboard to watch:
 
 - Loki log ingest bytes and lines.
-- Tempo and Alloy span ingest.
+- Tempo span ingest.
 - VictoriaMetrics row ingest.
 - `/mnt/apps` filesystem usage.
 - host disk write throughput.

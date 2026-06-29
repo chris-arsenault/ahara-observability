@@ -26,8 +26,8 @@ colliding with an existing manual InfluxDB on `8086`. After migration, either:
 - change the published port to `8086` once the old service is stopped.
 
 Application telemetry should not be written to InfluxDB. AWS producers send
-OTLP to the reverse-proxy gateway, which forwards to TrueNAS Alloy and then to
-VictoriaMetrics, Loki, and Tempo.
+OTLP to the reverse-proxy Alloy gateway, which forwards directly to
+VictoriaMetrics, Loki, and Tempo on TrueNAS.
 
 ## Rollback
 
