@@ -1,0 +1,200 @@
+{
+  "id": null,
+  "uid": "ahara-storage-volume",
+  "title": "Ahara Storage Volume",
+  "tags": ["ahara", "observability", "storage"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log Ingest",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(loki_distributor_bytes_received_total[$__rate_interval])) or vector(0)",
+          "legendFormat": "loki bytes/sec"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(loki_distributor_lines_received_total[$__rate_interval])) or vector(0)",
+          "legendFormat": "loki lines/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Trace Ingest",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(tempo_distributor_spans_received_total[$__rate_interval])) or vector(0)",
+          "legendFormat": "tempo spans/sec"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(otelcol_receiver_accepted_spans_total[$__rate_interval])) or vector(0)",
+          "legendFormat": "alloy accepted spans/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Metrics Ingest",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(vm_rows_inserted_total[$__rate_interval])) or vector(0)",
+          "legendFormat": "victoriametrics rows/sec"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(otelcol_receiver_accepted_metric_points_total[$__rate_interval])) or vector(0)",
+          "legendFormat": "alloy accepted metric points/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Observability Filesystem Used",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * (1 - (node_filesystem_avail_bytes{mountpoint=~\"/mnt/apps.*|/host/mnt/apps.*\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=~\"/mnt/apps.*|/host/mnt/apps.*\",fstype!~\"tmpfs|overlay\"}))",
+          "legendFormat": "{{mountpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Host Disk Write Throughput",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (device) (rate(node_disk_written_bytes_total[$__rate_interval]))",
+          "legendFormat": "{{device}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "title": "Local Stack Scrape Health",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=~\"grafana|loki|tempo|victoriametrics|influxdb|node-exporter\"}",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

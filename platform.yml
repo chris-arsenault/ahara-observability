@@ -1,0 +1,10 @@
+project: ahara-observability
+prefix: ahara-observability
+stack:
+  - vendor
+truenas: true
+truenas_images: false
+truenas_compose_path: compose.yaml
+truenas_compose_check_paths:
+  - compose.yaml
+  - compose.cloudwatch.yaml
