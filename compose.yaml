@@ -9,7 +9,7 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "192.168.66.3:30038:3000"
+      - "30038:3000"
     environment:
       AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
       AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
@@ -47,7 +47,7 @@ services:
       - -retentionPeriod=12
       - -httpListenAddr=:8428
     ports:
-      - "192.168.66.3:8428:8428"
+      - "8428:8428"
     volumes:
       - /mnt/apps/apps/ahara-observability/victoriametrics:/storage
     networks:
@@ -85,7 +85,7 @@ services:
     command:
       - -config.file=/etc/loki/loki.yaml
     ports:
-      - "192.168.66.3:3100:3100"
+      - "3100:3100"
     volumes:
       - ./config/loki/loki.yaml:/etc/loki/loki.yaml:ro
       - /mnt/apps/apps/ahara-observability/loki:/loki
@@ -104,8 +104,8 @@ services:
     command:
       - -config.file=/etc/tempo/tempo.yaml
     ports:
-      - "192.168.66.3:4317:4317"
-      - "192.168.66.3:4318:4318"
+      - "4317:4317"
+      - "4318:4318"
     volumes:
       - ./config/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - /mnt/apps/apps/ahara-observability/tempo:/var/tempo
@@ -121,7 +121,7 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "192.168.66.3:18086:8086"
+      - "18086:8086"
     environment:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "${INFLUXDB_ADMIN_TOKEN}"
       DOCKER_INFLUXDB_INIT_BUCKET: "env_sensors"
