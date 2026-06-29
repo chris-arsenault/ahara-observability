@@ -1,8 +1,9 @@
 services:
   grafana:
-    image: grafana/grafana-oss:latest
+    image: grafana/grafana:12.4.4
     container_name: ahara-grafana
     init: true
+    user: "0:0"
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -34,7 +35,7 @@ services:
       - observability
 
   victoriametrics:
-    image: victoriametrics/victoria-metrics:latest
+    image: victoriametrics/victoria-metrics:v1.146.0
     container_name: ahara-victoriametrics
     init: true
     restart: unless-stopped
@@ -53,7 +54,7 @@ services:
       - observability
 
   vmagent:
-    image: victoriametrics/vmagent:latest
+    image: victoriametrics/vmagent:v1.146.0
     container_name: ahara-vmagent
     init: true
     restart: unless-stopped
@@ -73,9 +74,10 @@ services:
       - observability
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.7.3
     container_name: ahara-loki
     init: true
+    user: "0:0"
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -91,9 +93,10 @@ services:
       - observability
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.9.0
     container_name: ahara-tempo
     init: true
+    user: "0:0"
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -110,7 +113,7 @@ services:
       - observability
 
   influxdb:
-    image: influxdb:2
+    image: influxdb:2.9.1
     container_name: ahara-influxdb
     init: true
     restart: unless-stopped
@@ -134,7 +137,7 @@ services:
       - observability
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.11.1
     container_name: ahara-node-exporter
     init: true
     restart: unless-stopped
