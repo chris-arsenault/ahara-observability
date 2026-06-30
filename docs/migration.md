@@ -41,53 +41,15 @@ Application telemetry should not be written to InfluxDB. AWS producers send
 OTLP to the reverse-proxy Alloy gateway, which forwards directly to
 VictoriaMetrics, Loki, and Tempo on TrueNAS.
 
-## Sensor Data Migration
+## Data Migration
 
-Use `scripts/migrate-influx-sensors.sh` for bucket-scoped migration. The script
-uses the upstream `influx` CLI from `influxdb:2.9.1` when a local `influx`
-binary is not installed.
+This repo does not keep one-shot migration scripts. Move legacy data with
+operator-controlled TrueNAS, InfluxDB, or Grafana commands outside the deployed
+stack, then verify the managed services directly.
 
-The default source URL is `http://192.168.66.3:30115`. The default restore target
-is a timestamped bucket such as `voltage-data_migrated_20260630T031500Z`. This
-avoids deleting or overwriting managed buckets while we confirm imported data.
-
-```bash
-SOURCE_INFLUX_TOKEN=... \
-TARGET_INFLUX_TOKEN=... \
-SOURCE_BUCKET=voltage-data \
-scripts/migrate-influx-sensors.sh migrate
-```
-
-Run the same command with `SOURCE_BUCKET=environment-data` for the environment
-sensor history.
-
-After verification, either:
-
-- point the relevant DBRP mapping at the migrated bucket; or
-- rerun the restore with `TARGET_BUCKET=voltage-data` or
-  `TARGET_BUCKET=environment-data` after confirming the managed bucket can be
-  replaced.
-
-The target token is stored in SSM at
-`/ahara/observability/influxdb-admin-token`. Do not commit either source or
-target token values.
-
-The legacy Grafana password is not sufficient for source Influx migration. The
-legacy InfluxDB source token or a filesystem backup is still required for the
-actual data copy.
-
-## Dashboard Migration
-
-Use `scripts/export-grafana-dashboards.sh` to export legacy Grafana dashboards:
-
-```bash
-LEGACY_GRAFANA_TOKEN=... scripts/export-grafana-dashboards.sh
-```
-
-The script writes provisionable dashboard JSON into
-`migration-artifacts/grafana-dashboards/` by default. Review exported dashboards
-before moving them into `dashboards/`, especially datasource UIDs and any
-hard-coded bucket names.
+The target InfluxDB token is stored in SSM at
+`/ahara/observability/influxdb-admin-token`. Do not commit source or target
+token values.
 
 The managed stack already provisions:
 
