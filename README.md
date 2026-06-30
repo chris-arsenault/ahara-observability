@@ -49,6 +49,16 @@ provide either environment credentials or a credentials file under:
 The `Ahara Storage Volume` dashboard tracks local ingest rates, filesystem
 capacity, disk write throughput, and scrape health.
 
+## Grafana Authentication
+
+Grafana uses Ahara Cognito as a native OIDC provider. The shared ALB forwards
+`dashboards.services.ahara.io` through to Grafana without its own Cognito
+challenge, so the browser sees one login flow instead of ALB auth plus Grafana
+auth.
+
+The local Grafana login form and basic auth are disabled. The admin password is
+still provisioned as break-glass configuration for controlled recovery.
+
 ## Ahara Producer Defaults
 
 Instrumented Lambdas should point to the AWS-private OTLP gateway published by

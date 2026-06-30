@@ -77,6 +77,12 @@ Use the `Ahara Storage Volume` dashboard to watch:
 Komodo receives these values from SSM via `secret-paths.yml`:
 
 - `/ahara/observability/grafana-admin-password`
+- `/ahara/observability/grafana-cognito-client-id`
+- `/ahara/observability/grafana-cognito-client-secret`
 - `/ahara/observability/grafana-secret-key`
 - `/ahara/observability/influxdb-admin-password`
 - `/ahara/observability/influxdb-admin-token`
+
+Grafana authenticates directly with Ahara Cognito using OIDC. The ALB dashboard
+route should remain passthrough; otherwise users see both the ALB Cognito
+challenge and Grafana's Cognito login.
