@@ -12,7 +12,7 @@ dashboards:
 	find dashboards -name '*.json' -print0 | xargs -0 -n1 jq empty
 
 scripts:
-	find scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+	find scripts config -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
 required-files:
 	test -f config/loki/loki.yaml

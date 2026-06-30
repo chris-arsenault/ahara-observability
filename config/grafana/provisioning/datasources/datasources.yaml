@@ -43,6 +43,34 @@ datasources:
     secureJsonData:
       token: ${INFLUXDB_ADMIN_TOKEN}
 
+  - name: voltage-data
+    uid: fewxrdtvmrk00a
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    user: admin
+    jsonData:
+      dbName: voltage-data
+      httpMode: POST
+      version: InfluxQL
+    secureJsonData:
+      password: ${INFLUXDB_ADMIN_TOKEN}
+
+  - name: environment-data
+    uid: aezaej38ebf9ce
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    user: admin
+    jsonData:
+      dbName: environment-data
+      defaultBucket: environment-data
+      httpMode: POST
+      organization: ahara
+      version: InfluxQL
+    secureJsonData:
+      password: ${INFLUXDB_ADMIN_TOKEN}
+
   - name: CloudWatch
     uid: cloudwatch
     type: CloudWatch

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source_url="${SOURCE_INFLUX_URL:-http://192.168.66.3:8086}"
+source_url="${SOURCE_INFLUX_URL:-http://192.168.66.3:30115}"
 target_url="${TARGET_INFLUX_URL:-http://192.168.66.3:18086}"
 org="${INFLUX_ORG:-ahara}"
 source_bucket="${SOURCE_BUCKET:-env_sensors}"
-target_bucket="${TARGET_BUCKET:-env_sensors_migrated_$(date -u +%Y%m%dT%H%M%SZ)}"
+target_bucket="${TARGET_BUCKET:-${source_bucket}_migrated_$(date -u +%Y%m%dT%H%M%SZ)}"
 backup_root="${BACKUP_ROOT:-./migration-artifacts/influx}"
 image="${INFLUX_IMAGE:-influxdb:2.9.1}"
 
@@ -18,11 +18,11 @@ Required:
   TARGET_INFLUX_TOKEN      Token for the managed InfluxDB target.
 
 Defaults:
-  SOURCE_INFLUX_URL        http://192.168.66.3:8086
+  SOURCE_INFLUX_URL        http://192.168.66.3:30115
   TARGET_INFLUX_URL        http://192.168.66.3:18086
   INFLUX_ORG               ahara
   SOURCE_BUCKET            env_sensors
-  TARGET_BUCKET            env_sensors_migrated_<timestamp>
+  TARGET_BUCKET            <source bucket>_migrated_<timestamp>
   BACKUP_ROOT              ./migration-artifacts/influx
 
 Commands:

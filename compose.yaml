@@ -153,6 +153,24 @@ services:
     networks:
       - observability
 
+  influxdb-compat-init:
+    image: influxdb:2.9.1
+    container_name: ahara-influxdb-compat-init
+    init: true
+    restart: "no"
+    depends_on:
+      - influxdb
+    environment:
+      INFLUXDB_ADMIN_TOKEN: "${INFLUXDB_ADMIN_TOKEN}"
+      INFLUX_V1_PASSWORD: "${INFLUXDB_ADMIN_TOKEN}"
+    command:
+      - /bin/sh
+      - /init/influxdb-compat.sh
+    volumes:
+      - ./config/influxdb/init-compat.sh:/init/influxdb-compat.sh:ro
+    networks:
+      - observability
+
   node-exporter:
     image: prom/node-exporter:v1.11.1
     container_name: ahara-node-exporter

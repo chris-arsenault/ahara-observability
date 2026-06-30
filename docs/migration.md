@@ -23,9 +23,11 @@
 - Legacy Grafana is still healthy on `192.168.66.3:30037`, but its API requires
   credentials.
 - Managed InfluxDB is healthy on `192.168.66.3:18086`.
-- Legacy InfluxDB is not listening on `192.168.66.3:8086` from the current
-  network path.
-- The managed `env_sensors` bucket exists and is currently queryable.
+- Legacy InfluxDB is healthy on `192.168.66.3:30115`.
+- The legacy Grafana sensor dashboards use InfluxQL datasources backed by
+  `voltage-data` and `environment-data`.
+- The managed `env_sensors`, `voltage-data`, and `environment-data` buckets
+  exist and are currently queryable.
 
 ## Influx Compatibility
 
@@ -45,26 +47,34 @@ Use `scripts/migrate-influx-sensors.sh` for bucket-scoped migration. The script
 uses the upstream `influx` CLI from `influxdb:2.9.1` when a local `influx`
 binary is not installed.
 
-The default restore target is a timestamped bucket such as
-`env_sensors_migrated_20260630T031500Z`. This avoids deleting or overwriting the
-managed `env_sensors` bucket while we confirm the imported data.
+The default source URL is `http://192.168.66.3:30115`. The default restore target
+is a timestamped bucket such as `voltage-data_migrated_20260630T031500Z`. This
+avoids deleting or overwriting managed buckets while we confirm imported data.
 
 ```bash
 SOURCE_INFLUX_TOKEN=... \
 TARGET_INFLUX_TOKEN=... \
+SOURCE_BUCKET=voltage-data \
 scripts/migrate-influx-sensors.sh migrate
 ```
 
+Run the same command with `SOURCE_BUCKET=environment-data` for the environment
+sensor history.
+
 After verification, either:
 
-- update Grafana's `InfluxDB Sensors` datasource `defaultBucket` to the migrated
-  bucket; or
-- rerun the restore with `TARGET_BUCKET=env_sensors` after confirming the
-  managed bucket can be replaced.
+- point the relevant DBRP mapping at the migrated bucket; or
+- rerun the restore with `TARGET_BUCKET=voltage-data` or
+  `TARGET_BUCKET=environment-data` after confirming the managed bucket can be
+  replaced.
 
 The target token is stored in SSM at
 `/ahara/observability/influxdb-admin-token`. Do not commit either source or
 target token values.
+
+The legacy Grafana password is not sufficient for source Influx migration. The
+legacy InfluxDB source token or a filesystem backup is still required for the
+actual data copy.
 
 ## Dashboard Migration
 
