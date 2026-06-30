@@ -56,22 +56,36 @@ jobs:
             sleep 15
           done
 
-          echo "Bootstrapping Grafana dashboard deployer token..."
-          RESULT_FILE=$(mktemp)
-          AWS_MAX_ATTEMPTS=1 aws lambda invoke \
-            --function-name "${FN}" \
-            --payload '{"action":"bootstrap-dashboard-deployer-token"}' \
-            --cli-binary-format raw-in-base64-out \
-            --cli-read-timeout 700 \
-            --region "${REGION}" \
-            "${RESULT_FILE}" > /dev/null
+          for attempt in $(seq 1 20); do
+            echo "Bootstrapping Grafana dashboard deployer token (${attempt}/20)..."
+            RESULT_FILE=$(mktemp)
+            ERROR_FILE=$(mktemp)
+            if AWS_MAX_ATTEMPTS=1 aws lambda invoke \
+              --function-name "${FN}" \
+              --payload '{"action":"bootstrap-dashboard-deployer-token"}' \
+              --cli-binary-format raw-in-base64-out \
+              --cli-read-timeout 120 \
+              --region "${REGION}" \
+              "${RESULT_FILE}" > /dev/null 2>"${ERROR_FILE}"; then
+              RESULT=$(cat "${RESULT_FILE}")
+              rm "${RESULT_FILE}" "${ERROR_FILE}"
+              if echo "${RESULT}" | grep -q '"success":true'; then
+                echo "Grafana dashboard deployer token created and stored in SSM"
+                exit 0
+              fi
 
-          RESULT=$(cat "${RESULT_FILE}"); rm "${RESULT_FILE}"
+              echo "Grafana dashboard deployer bootstrap is not ready yet:"
+              echo "${RESULT}" | python3 -m json.tool 2>/dev/null || echo "${RESULT}"
+            else
+              echo "Grafana dashboard deployer bootstrap invoke failed:"
+              cat "${ERROR_FILE}"
+              rm "${RESULT_FILE}" "${ERROR_FILE}"
+            fi
 
-          if echo "${RESULT}" | grep -q '"success":true'; then
-            echo "Grafana dashboard deployer token created and stored in SSM"
-          else
-            echo "::error::Grafana dashboard deployer bootstrap failed"
-            echo "${RESULT}" | python3 -m json.tool 2>/dev/null || echo "${RESULT}"
-            exit 1
-          fi
+            if [ "${attempt}" -lt 20 ]; then
+              sleep 15
+            fi
+          done
+
+          echo "::error::Grafana dashboard deployer bootstrap failed after all retries"
+          exit 1
