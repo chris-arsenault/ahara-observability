@@ -1,9 +1,11 @@
+x-observability-user: &observability-user "${OBSERVABILITY_UID:-2401}:${OBSERVABILITY_GID:-2401}"
+
 services:
   grafana:
     image: grafana/grafana:12.4.4
     container_name: ahara-grafana
     init: true
-    user: "0:0"
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -55,6 +57,7 @@ services:
     image: victoriametrics/victoria-metrics:v1.146.0
     container_name: ahara-victoriametrics
     init: true
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -74,6 +77,7 @@ services:
     image: victoriametrics/vmagent:v1.146.0
     container_name: ahara-vmagent
     init: true
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -94,7 +98,7 @@ services:
     image: grafana/loki:3.7.3
     container_name: ahara-loki
     init: true
-    user: "0:0"
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -113,7 +117,7 @@ services:
     image: grafana/tempo:2.9.0
     container_name: ahara-tempo
     init: true
-    user: "0:0"
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -133,6 +137,7 @@ services:
     image: influxdb:2.9.1
     container_name: ahara-influxdb
     init: true
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
@@ -153,28 +158,11 @@ services:
     networks:
       - observability
 
-  influxdb-compat-init:
-    image: influxdb:2.9.1
-    container_name: ahara-influxdb-compat-init
-    init: true
-    restart: "no"
-    depends_on:
-      - influxdb
-    environment:
-      INFLUXDB_ADMIN_TOKEN: "${INFLUXDB_ADMIN_TOKEN}"
-      INFLUX_V1_PASSWORD: "${INFLUXDB_ADMIN_TOKEN}"
-    command:
-      - /bin/sh
-      - /init/influxdb-compat.sh
-    volumes:
-      - ./config/influxdb/init-compat.sh:/init/influxdb-compat.sh:ro
-    networks:
-      - observability
-
   node-exporter:
     image: prom/node-exporter:v1.11.1
     container_name: ahara-node-exporter
     init: true
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     pid: host

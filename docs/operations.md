@@ -61,6 +61,19 @@ address.
 
 Tune Loki and Tempo retention after real ingestion volume is known.
 
+## Runtime User
+
+The Compose stack runs services as UID/GID `2401:2401` by default. Keep the
+TrueNAS datasets owned by the same numeric identity:
+
+```bash
+chown -R 2401:2401 /mnt/apps/apps/ahara-observability
+chmod -R u+rwX,g+rwX,o-rwx /mnt/apps/apps/ahara-observability
+```
+
+The UID/GID can be overridden with `OBSERVABILITY_UID` and `OBSERVABILITY_GID`,
+but the host dataset ownership must match the values passed to Compose.
+
 ## Storage Monitoring
 
 Use the `Ahara Storage Volume` dashboard to watch:

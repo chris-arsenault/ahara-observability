@@ -1,9 +1,11 @@
+x-observability-user: &observability-user "${OBSERVABILITY_UID:-2401}:${OBSERVABILITY_GID:-2401}"
+
 services:
   grafana:
     image: grafana/grafana:12.4.4
     container_name: ahara-grafana
     init: true
-    user: "0:0"
+    user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
     security_opt:
