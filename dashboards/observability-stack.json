@@ -152,17 +152,77 @@
     {
       "id": 500,
       "type": "row",
-      "title": "Notes",
+      "title": "Collectors (Alloy) — split by instance: local router vs AWS edge gateway",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 }
     },
     {
       "id": 9,
-      "title": "Collector / pipeline notes",
+      "title": "Collector Receiver Accepted/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 35 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(otelcol_receiver_accepted_spans_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} spans" },
+        { "refId": "B", "expr": "sum(rate(otelcol_receiver_accepted_metric_points_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} metric points" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 10,
+      "title": "Collector Receiver Refused + Failed/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 35 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(otelcol_receiver_refused_spans_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} refused spans" },
+        { "refId": "B", "expr": "sum(rate(otelcol_receiver_failed_spans_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} failed spans" },
+        { "refId": "C", "expr": "sum(rate(otelcol_receiver_refused_metric_points_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} refused metrics" },
+        { "refId": "D", "expr": "sum(rate(otelcol_receiver_failed_metric_points_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} failed metrics" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 20, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "red" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 0.001 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "title": "Collector Exporter Sent vs Send-Failed Spans/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 43 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(otelcol_exporter_sent_spans_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} sent" },
+        { "refId": "B", "expr": "sum(rate(otelcol_exporter_send_failed_spans_total[$__rate_interval])) by (instance)", "legendFormat": "{{instance}} send-failed" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": ".*send-failed.*" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "title": "Collector Exporter Queue Utilization",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 43 },
+      "targets": [
+        { "refId": "A", "expr": "max(otelcol_exporter_queue_size) by (instance) / clamp_min(max(otelcol_exporter_queue_capacity) by (instance), 1)", "legendFormat": "{{instance}} queue used" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "min": 0, "max": 1, "custom": { "fillOpacity": 10, "showPoints": "never" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.5 }, { "color": "red", "value": 0.85 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "title": "Collector coverage",
       "type": "text",
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 35 },
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 51 },
       "options": {
         "mode": "markdown",
-        "content": "**Reverse-proxy OTLP collector metrics are not scraped into this stack.** Panels here cover the TrueNAS-local backends (Tempo, Loki, VictoriaMetrics) and scrape-target health.\n\nThe `alloy` job (`alloy:12345`) is a configured scrape target but is **not currently reporting** (`up{job=\"alloy\"}` is absent), so no `otelcol_*` collector metrics exist in VictoriaMetrics. If you need local Alloy collector throughput/queue/drop metrics, fix that scrape first — then add `otelcol_receiver_*` / `otelcol_exporter_*` panels here."
+        "content": "Series are split by `instance`. The **local router** Alloy (`alloy:12345`) is scraped by vmagent in this stack. The **AWS edge gateway** Alloy only appears here if `ahara-infra` ships its `otelcol_*` self-metrics to this VictoriaMetrics; otherwise its own health is owned on the AWS side."
       }
     }
   ]

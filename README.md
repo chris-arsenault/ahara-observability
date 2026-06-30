@@ -53,7 +53,7 @@ can pivot fleet → service → trace → log without leaving Grafana.
 | `Ahara Traces & Spans` | Span RED from Tempo span-metrics plus TraceQL search panels that open the span waterfall, error/slowest traces, and the service graph. |
 | `Ahara Logs` | Filterable log surface (service, level, host role, source, line filter) with volume-by-level/service and a rich log stream that links to traces. |
 | `Ahara IoT / House Sensors` | The `house_sensors_*` polling pipeline: poll/influx outcomes, devices, collection-loop and job latency. |
-| `Ahara Pipeline Health` | Telemetry-pipeline health: scrape-target `up`, Tempo/Loki/VictoriaMetrics ingest and discards. |
+| `Ahara Pipeline Health` | Telemetry-pipeline health: scrape-target `up`, Tempo/Loki/VictoriaMetrics ingest and discards, and Alloy collector receiver/exporter/queue metrics split by `instance`. |
 | `Ahara Storage Volume` | Local ingest rates, filesystem capacity, disk write throughput, VM on-disk size, cardinality churn, and scrape health. |
 
 The Overview uses common OTEL labels (`service_name`, `operation_type`,
