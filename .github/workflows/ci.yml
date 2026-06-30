@@ -16,3 +16,46 @@ jobs:
     uses: chris-arsenault/ahara/.github/workflows/ci.yml@main
     secrets: inherit
 
+  bootstrap:
+    if: github.ref == 'refs/heads/main'
+    needs: [ci]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE }}
+          role-session-name: GitHubActions-${{ github.run_id }}
+          aws-region: us-east-1
+
+      - name: Bootstrap Grafana dashboard deployer token
+        run: |
+          set -euo pipefail
+          REGION="us-east-1"
+          FN=$(aws ssm get-parameter \
+            --name /ahara/observability/grafana-dashboard-deployer/bootstrap-function-name \
+            --query Parameter.Value \
+            --output text \
+            --region "${REGION}")
+
+          echo "Bootstrapping Grafana dashboard deployer token..."
+          RESULT_FILE=$(mktemp)
+          AWS_MAX_ATTEMPTS=1 aws lambda invoke \
+            --function-name "${FN}" \
+            --payload '{"action":"bootstrap-dashboard-deployer-token"}' \
+            --cli-binary-format raw-in-base64-out \
+            --cli-read-timeout 700 \
+            --region "${REGION}" \
+            "${RESULT_FILE}" > /dev/null
+
+          RESULT=$(cat "${RESULT_FILE}"); rm "${RESULT_FILE}"
+
+          if echo "${RESULT}" | grep -q '"success":true'; then
+            echo "Grafana dashboard deployer token created and stored in SSM"
+          else
+            echo "::error::Grafana dashboard deployer bootstrap failed"
+            echo "${RESULT}" | python3 -m json.tool 2>/dev/null || echo "${RESULT}"
+            exit 1
+          fi

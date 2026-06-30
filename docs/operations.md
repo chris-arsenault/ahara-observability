@@ -60,6 +60,21 @@ The dashboard deploy Lambda reads its Grafana service-account token from:
 Keep that token in SSM as a SecureString. Product repos should only receive
 permission to invoke the deploy Lambda, not direct access to this token.
 
+The token is not a manually managed secret. After the TrueNAS Grafana stack
+deploys, this repo's CI invokes the platform bootstrap Lambda published at:
+
+```text
+/ahara/observability/grafana-dashboard-deployer/bootstrap-function-name
+```
+
+That Lambda reaches Grafana over the private LAN, authenticates with the admin
+password from `/ahara/observability/grafana-admin-password`, creates or updates
+the `ahara-dashboard-deployer` service account, rotates the
+`ci-dashboard-deployer` token, and writes the resulting SecureString to
+`/ahara/observability/grafana-dashboard-deployer-token`. Grafana keeps basic
+auth enabled for this admin API flow, while the login form remains disabled and
+browser sign-in continues through Cognito OAuth auto-login.
+
 ## Host Log Ingestion
 
 EC2 Alloy agents push host logs to the reverse proxy's private Loki-compatible
@@ -116,6 +131,10 @@ Komodo receives these values from SSM via `secret-paths.yml`:
 - `/ahara/observability/grafana-secret-key`
 - `/ahara/observability/influxdb-admin-password`
 - `/ahara/observability/influxdb-admin-token`
+
+The dashboard deployer token path is deliberately absent from `secret-paths.yml`;
+it is consumed by the AWS dashboard deploy Lambda, not by the TrueNAS Compose
+stack.
 
 Grafana authenticates directly with Ahara Cognito using OIDC. The ALB dashboard
 route should remain passthrough; otherwise users see both the ALB Cognito
