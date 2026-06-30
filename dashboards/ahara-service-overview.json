@@ -12,278 +12,172 @@
     "from": "now-6h",
     "to": "now"
   },
+  "links": [
+    {
+      "title": "Ahara dashboards",
+      "type": "dashboards",
+      "tags": ["ahara"],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "apps"
+    }
+  ],
   "templating": {
     "list": [
       {
         "name": "service",
         "label": "Service",
         "type": "query",
-        "datasource": {
-          "type": "prometheus",
-          "uid": "victoriametrics"
-        },
-        "query": "label_values(service_name)",
+        "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "definition": "label_values(ahara_operation_count_total, service_name)",
+        "query": { "query": "label_values(ahara_operation_count_total, service_name)", "refId": "service" },
         "includeAll": true,
         "multi": true,
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
-        },
+        "current": { "selected": true, "text": "All", "value": "$__all" },
         "allValue": ".*",
-        "refresh": 2
-      },
-      {
-        "name": "namespace",
-        "label": "Namespace",
-        "type": "query",
-        "datasource": {
-          "type": "prometheus",
-          "uid": "victoriametrics"
-        },
-        "query": "label_values(service_namespace)",
-        "includeAll": true,
-        "multi": true,
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
-        },
-        "allValue": ".*",
-        "refresh": 2
+        "refresh": 2,
+        "sort": 1
       },
       {
         "name": "operation_type",
         "label": "Operation Type",
-        "type": "custom",
-        "query": "user_interaction,polling,background,health,system",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "definition": "label_values(ahara_operation_count_total, operation_type)",
+        "query": { "query": "label_values(ahara_operation_count_total, operation_type)", "refId": "operation_type" },
         "includeAll": true,
         "multi": true,
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
-        },
-        "allValue": ".*"
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1
+      },
+      {
+        "name": "operation_name",
+        "label": "Operation",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "definition": "label_values(ahara_operation_count_total{service_name=~\"$service\"}, operation_name)",
+        "query": { "query": "label_values(ahara_operation_count_total{service_name=~\"$service\"}, operation_name)", "refId": "operation_name" },
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1
+      },
+      {
+        "name": "http_method",
+        "label": "HTTP Method",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "definition": "label_values(ahara_http_server_request_count_total{service_name=~\"$service\"}, http_request_method)",
+        "query": { "query": "label_values(ahara_http_server_request_count_total{service_name=~\"$service\"}, http_request_method)", "refId": "http_method" },
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1
       }
     ]
   },
   "panels": [
     {
+      "id": 100,
+      "type": "row",
+      "title": "Golden Signals",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
       "id": 1,
       "title": "HTTP Requests/sec",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval]))",
+          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",http_request_method=~\"$http_method\"}[$__rate_interval]))",
           "legendFormat": "requests/sec"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "decimals": 2
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
+      "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
     },
     {
       "id": 2,
-      "title": "HTTP Error Rate",
+      "title": "HTTP 5xx Error Rate",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_outcome=\"failed\"}[$__rate_interval])) / clamp_min(sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])), 1)",
-          "legendFormat": "error rate"
+          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",http_response_status_code=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])), 1)",
+          "legendFormat": "5xx rate"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
           "decimals": 2,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.02
-              },
-              {
-                "color": "red",
-                "value": 0.05
-              }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.02 }, { "color": "red", "value": 0.05 } ] }
         },
         "overrides": []
       },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
     },
     {
       "id": 3,
       "title": "HTTP p95 Latency",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum(rate(ahara_http_server_request_duration_ms_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(ahara_http_server_request_duration_ms_milliseconds_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le))",
           "legendFormat": "p95"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "ms",
-          "decimals": 0
+          "decimals": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 500 }, { "color": "red", "value": 2000 } ] }
         },
         "overrides": []
       },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
     },
     {
       "id": 4,
-      "title": "Lambda Invocations/sec",
+      "title": "Operations/sec",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_faas_invocation_count_total{service_name=~\"$service\"}[$__rate_interval]))",
-          "legendFormat": "invocations/sec"
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_name=~\"$operation_name\"}[$__rate_interval]))",
+          "legendFormat": "ops/sec"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops",
-          "decimals": 2
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 2 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
     },
     {
       "id": 5,
-      "title": "App Work/sec",
+      "title": "Failed Operations (range)",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 12,
-        "x": 0,
-        "y": 4
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) or vector(0)) + (sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) or vector(0))",
-          "legendFormat": "work/sec"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops",
-          "decimals": 2
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
-    },
-    {
-      "id": 6,
-      "title": "Failed App Events",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 12,
-        "x": 12,
-        "y": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "(sum(increase(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_outcome=\"failed\"}[$__range])) or vector(0)) + (sum(increase({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\",outcome=~\"error|invalid|misconfigured\"}[$__range])) or vector(0))",
+          "expr": "sum(increase(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_name=~\"$operation_name\",operation_outcome!~\"succeeded|success\"}[$__range])) or vector(0)",
           "legendFormat": "failed"
         }
       ],
@@ -291,218 +185,243 @@
         "defaults": {
           "unit": "short",
           "decimals": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
         },
         "overrides": []
       },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"]
-        },
-        "colorMode": "value",
-        "graphMode": "area"
-      }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 6,
+      "title": "FaaS Invocations/sec",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(ahara_faas_invocation_count_total{service_name=~\"$service\"}[$__rate_interval]))",
+          "legendFormat": "invocations/sec"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 2 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "HTTP",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
     },
     {
       "id": 7,
       "title": "HTTP Requests by Service",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (service_name)",
+          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",http_request_method=~\"$http_method\"}[$__rate_interval])) by (service_name)",
           "legendFormat": "{{service_name}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
     },
     {
       "id": 8,
-      "title": "Work by Operation Type",
+      "title": "HTTP Requests by Status Code",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (operation_type)",
-          "legendFormat": "lambda {{operation_type}}"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (operation_type)",
-          "legendFormat": "local {{operation_type}}"
+          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",http_request_method=~\"$http_method\"}[$__rate_interval])) by (http_response_status_code)",
+          "legendFormat": "{{http_response_status_code}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 30, "stacking": { "mode": "normal" }, "showPoints": "never" } }, "overrides": [] }
     },
     {
       "id": 9,
-      "title": "Work by Service",
+      "title": "HTTP Latency p50 / p95 / p99",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (service_name)",
-          "legendFormat": "{{service_name}}"
+          "expr": "histogram_quantile(0.50, sum(rate(ahara_http_server_request_duration_ms_milliseconds_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le))",
+          "legendFormat": "p50"
         },
         {
           "refId": "B",
-          "expr": "sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (service_name)",
-          "legendFormat": "{{service_name}}"
+          "expr": "histogram_quantile(0.95, sum(rate(ahara_http_server_request_duration_ms_milliseconds_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum(rate(ahara_http_server_request_duration_ms_milliseconds_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le))",
+          "legendFormat": "p99"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] }
     },
     {
       "id": 10,
-      "title": "Outcomes",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
-      },
+      "title": "Requests by Route",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (operation_outcome)",
-          "legendFormat": "lambda {{operation_outcome}}"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (outcome)",
-          "legendFormat": "local {{outcome}}"
+          "expr": "topk(25, sum(increase(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",http_request_method=~\"$http_method\"}[$__range])) by (service_name, http_request_method, url_path, http_response_status_code))",
+          "format": "table",
+          "instant": true
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
-        "overrides": []
-      }
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "Value": "requests" } } },
+        { "id": "sortBy", "options": { "fields": "", "sort": [ { "field": "requests", "desc": true } ] } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "Application Operations",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 }
     },
     {
       "id": 11,
-      "title": "App Duration p95 by Service",
+      "title": "Operations/sec by Type",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 24
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum(rate(ahara_operation_duration_ms_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le, service_name))",
-          "legendFormat": "{{service_name}} lambda"
-        },
-        {
-          "refId": "B",
-          "expr": "histogram_quantile(0.95, sum(rate({__name__=~\"house_sensors_.*_ms_bucket\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le, service_name))",
-          "legendFormat": "{{service_name}} local"
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_name=~\"$operation_name\"}[$__rate_interval])) by (operation_type)",
+          "legendFormat": "{{operation_type}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" }, "showPoints": "never" } }, "overrides": [] }
     },
     {
       "id": 12,
-      "title": "Top App Events",
-      "type": "table",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 24
-      },
+      "title": "Operations/sec by Name",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(20, sum(increase(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__range])) by (service_name, operation_name, operation_type, operation_outcome))",
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_name=~\"$operation_name\"}[$__rate_interval])) by (operation_name)",
+          "legendFormat": "{{operation_name}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 13,
+      "title": "Operation Outcomes",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_name=~\"$operation_name\"}[$__rate_interval])) by (operation_outcome)",
+          "legendFormat": "{{operation_outcome}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 30, "stacking": { "mode": "normal" }, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": ".*(failed|error|invalid).*" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] },
+          { "matcher": { "id": "byRegexp", "options": ".*(succeeded|success).*" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "title": "Operation Duration Heatmap",
+      "type": "heatmap",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(ahara_operation_duration_ms_milliseconds_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_name=~\"$operation_name\"}[$__rate_interval])) by (le)",
+          "format": "heatmap",
+          "legendFormat": "{{le}}"
+        }
+      ],
+      "options": { "calculate": false, "cellGap": 1, "color": { "scheme": "Spectral", "mode": "scheme" }, "yAxis": { "unit": "ms" } },
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "id": 400,
+      "type": "row",
+      "title": "Services",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 }
+    },
+    {
+      "id": 15,
+      "title": "Service Health (click a row to drill down)",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 40 },
+      "targets": [
+        {
+          "refId": "rate",
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\"}[$__rate_interval])) by (service_name)",
           "format": "table",
           "instant": true
         },
         {
-          "refId": "B",
-          "expr": "topk(20, sum(increase({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__range])) by (__name__, service_name, operation_type, outcome, job, backend))",
+          "refId": "errors",
+          "expr": "sum(increase(ahara_operation_count_total{service_name=~\"$service\",operation_outcome!~\"succeeded|success\"}[$__range])) by (service_name)",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "http_p95",
+          "expr": "histogram_quantile(0.95, sum(rate(ahara_http_server_request_duration_ms_milliseconds_bucket{service_name=~\"$service\"}[$__rate_interval])) by (le, service_name))",
           "format": "table",
           "instant": true
         }
-      ]
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "service_name": "Service", "Value #rate": "Ops/sec", "Value #errors": "Failed (range)", "Value #http_p95": "HTTP p95 (ms)" } } }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "filterable": true },
+          "links": [
+            {
+              "title": "Service detail: ${__data.fields.Service}",
+              "url": "/d/ahara-service-detail?var-service=${__data.fields.Service}&${__url_time_range}"
+            },
+            {
+              "title": "Traces for ${__data.fields.Service}",
+              "url": "/d/ahara-traces?var-service=${__data.fields.Service}&${__url_time_range}"
+            },
+            {
+              "title": "Logs for ${__data.fields.Service}",
+              "url": "/d/ahara-logs?var-service_name=${__data.fields.Service}&${__url_time_range}"
+            }
+          ]
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ops/sec" }, "properties": [ { "id": "unit", "value": "ops" }, { "id": "decimals", "value": 2 } ] },
+          { "matcher": { "id": "byName", "options": "HTTP p95 (ms)" }, "properties": [ { "id": "unit", "value": "ms" }, { "id": "decimals", "value": 0 } ] },
+          { "matcher": { "id": "byName", "options": "Failed (range)" }, "properties": [ { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } } ] }
+        ]
+      }
     }
   ]
 }

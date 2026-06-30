@@ -8,193 +8,147 @@
   "graphTooltip": 1,
   "schemaVersion": 39,
   "refresh": "30s",
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
+  "time": { "from": "now-6h", "to": "now" },
+  "links": [
+    {
+      "title": "Ahara dashboards",
+      "type": "dashboards",
+      "tags": ["ahara"],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "apps"
+    }
+  ],
   "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Ingest Rates",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
     {
       "id": 1,
       "title": "Log Ingest",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(loki_distributor_bytes_received_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "loki bytes/sec"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(rate(loki_distributor_lines_received_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "loki lines/sec"
-        }
+        { "refId": "A", "expr": "sum(rate(loki_distributor_bytes_received_total[$__rate_interval])) or vector(0)", "legendFormat": "bytes/sec" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "Bps"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
     },
     {
       "id": 2,
       "title": "Trace Ingest",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(tempo_distributor_spans_received_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "tempo spans/sec"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(rate(otelcol_receiver_accepted_spans_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "reverse proxy accepted spans/sec"
-        }
+        { "refId": "A", "expr": "sum(rate(tempo_distributor_spans_received_total[$__rate_interval])) or vector(0)", "legendFormat": "spans/sec" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
     },
     {
       "id": 3,
       "title": "Metrics Ingest",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(vm_rows_inserted_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "victoriametrics rows/sec"
-        },
-        {
-          "refId": "B",
-          "expr": "sum(rate(otelcol_receiver_accepted_metric_points_total[$__rate_interval])) or vector(0)",
-          "legendFormat": "reverse proxy accepted metric points/sec"
-        }
+        { "refId": "A", "expr": "sum(rate(vm_rows_inserted_total[$__rate_interval])) or vector(0)", "legendFormat": "rows/sec" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Capacity & Disk",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 }
     },
     {
       "id": 4,
       "title": "Observability Filesystem Used",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "100 * (1 - (node_filesystem_avail_bytes{mountpoint=~\"/mnt/apps.*|/host/mnt/apps.*\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=~\"/mnt/apps.*|/host/mnt/apps.*\",fstype!~\"tmpfs|overlay\"}))",
-          "legendFormat": "{{mountpoint}}"
-        }
+        { "refId": "A", "expr": "100 * (1 - (node_filesystem_avail_bytes{mountpoint=~\"/mnt/apps.*|/host/mnt/apps.*\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=~\"/mnt/apps.*|/host/mnt/apps.*\",fstype!~\"tmpfs|overlay\"}))", "legendFormat": "{{mountpoint}}" }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "percent"
-        },
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 10, "showPoints": "never" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 } ] } },
         "overrides": []
       }
     },
     {
       "id": 5,
-      "title": "Host Disk Write Throughput",
+      "title": "Filesystem Available",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by (device) (rate(node_disk_written_bytes_total[$__rate_interval]))",
-          "legendFormat": "{{device}}"
-        }
+        { "refId": "A", "expr": "node_filesystem_avail_bytes{mountpoint=~\"/mnt/apps.*|/host/mnt/apps.*\",fstype!~\"tmpfs|overlay\"}", "legendFormat": "{{mountpoint}}" },
+        { "refId": "B", "expr": "min(vm_free_disk_space_bytes)", "legendFormat": "victoriametrics free" }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "Bps"
-        },
-        "overrides": []
-      }
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] }
     },
     {
       "id": 6,
+      "title": "Host Disk Write Throughput",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (device) (rate(node_disk_written_bytes_total[$__rate_interval]))", "legendFormat": "{{device}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 7,
+      "title": "VictoriaMetrics On-Disk Size",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "targets": [
+        { "refId": "A", "expr": "sum(vm_data_size_bytes) by (type)", "legendFormat": "{{type}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "fillOpacity": 10, "stacking": { "mode": "normal" }, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "Cardinality & Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 }
+    },
+    {
+      "id": 8,
+      "title": "New Time Series/sec (cardinality churn)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(vm_new_timeseries_created_total[$__rate_interval]))", "legendFormat": "new series/sec" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 9,
       "title": "Local Stack Scrape Health",
       "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 16
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "up{job=~\"grafana|loki|tempo|victoriametrics|influxdb|node-exporter\"}",
-          "legendFormat": "{{job}}"
-        }
+        { "refId": "A", "expr": "up{job=~\"grafana|loki|tempo|victoriametrics|influxdb|node-exporter\"}", "legendFormat": "{{job}}" }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "mappings": [ { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } } ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
         },
         "overrides": []
-      }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" }
     }
   ]
 }

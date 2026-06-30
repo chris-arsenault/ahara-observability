@@ -9,6 +9,12 @@ datasources:
     isDefault: true
     jsonData:
       timeInterval: 15s
+      # Tempo remote-writes exemplars; let metric points jump to the trace.
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+        - name: traceID
+          datasourceUid: tempo
 
   - name: Loki
     uid: loki
@@ -17,6 +23,14 @@ datasources:
     url: http://loki:3100
     jsonData:
       maxLines: 1000
+      # Extract a trace id out of log lines and link to the Tempo trace view.
+      derivedFields:
+        - name: trace_id
+          matcherType: regex
+          matcherRegex: '(?:trace[_-]?id|traceID)["=:\s]+([0-9a-fA-F]{16,32})'
+          url: '${__value.raw}'
+          datasourceUid: tempo
+          urlDisplayLabel: 'View trace'
 
   - name: Tempo
     uid: tempo
@@ -26,10 +40,25 @@ datasources:
     jsonData:
       serviceMap:
         datasourceUid: victoriametrics
+      nodeGraph:
+        enabled: true
       tracesToLogsV2:
         datasourceUid: loki
         filterBySpanID: true
         filterByTraceID: true
+        tags:
+          - key: service.name
+            value: service_name
+      tracesToMetrics:
+        datasourceUid: victoriametrics
+        tags:
+          - key: service.name
+            value: service
+        queries:
+          - name: 'Span call rate'
+            query: 'sum(rate(traces_spanmetrics_calls_total{$$__tags}[$$__rate_interval]))'
+          - name: 'Span p95 latency'
+            query: 'histogram_quantile(0.95, sum(rate(traces_spanmetrics_latency_bucket{$$__tags}[$$__rate_interval])) by (le))'
 
   - name: InfluxDB Sensors
     uid: influxdb-sensors

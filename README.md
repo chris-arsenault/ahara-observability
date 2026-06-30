@@ -40,14 +40,31 @@ AWS fallback surface for Lambda/runtime logs and selected AWS-native alarms, but
 Ahara product dashboards belong in this Grafana stack using Loki, Tempo, and
 VictoriaMetrics data.
 
-The `Ahara Storage Volume` dashboard tracks local ingest rates, filesystem
-capacity, disk write throughput, and scrape health.
+### Platform dashboards
 
-The `Ahara Telemetry Overview` dashboard is the shared cross-product operations
-surface. It uses common OTEL labels such as `service.name`, `service.namespace`,
-and `operation.type` so individual services do not need their own telemetry
-dashboard just to expose request, polling, background-job, outcome, and duration
-health.
+These ship from `dashboards/*.json` and are auto-provisioned into the `Ahara`
+folder. They cross-link via a dashboard dropdown and per-row data links, so you
+can pivot fleet → service → trace → log without leaving Grafana.
+
+| Dashboard | Purpose |
+| --- | --- |
+| `Ahara Telemetry Overview` | Cross-product golden signals (HTTP/operation/FaaS RED) with a service table that drills into Service Detail, Traces, and Logs. |
+| `Ahara Service Detail` | Single-service deep dive: HTTP RED, operations, FaaS, recent traces, and recent logs for one `service`. |
+| `Ahara Traces & Spans` | Span RED from Tempo span-metrics plus TraceQL search panels that open the span waterfall, error/slowest traces, and the service graph. |
+| `Ahara Logs` | Filterable log surface (service, level, host role, source, line filter) with volume-by-level/service and a rich log stream that links to traces. |
+| `Ahara IoT / House Sensors` | The `house_sensors_*` polling pipeline: poll/influx outcomes, devices, collection-loop and job latency. |
+| `Ahara Pipeline Health` | Telemetry-pipeline health: scrape-target `up`, Tempo/Loki/VictoriaMetrics ingest and discards. |
+| `Ahara Storage Volume` | Local ingest rates, filesystem capacity, disk write throughput, VM on-disk size, cardinality churn, and scrape health. |
+
+The Overview uses common OTEL labels (`service_name`, `operation_type`,
+`operation_name`) so individual services do not need their own dashboard to
+expose request, polling, background-job, outcome, and duration health.
+
+Metric names follow the producer's OTLP→Prometheus naming, including the
+`_milliseconds_` infix on duration histograms (for example
+`ahara_http_server_request_duration_ms_milliseconds_bucket`). Note that
+`service_namespace` is **not** currently emitted as a label — filter on
+`service_name` instead.
 
 ## Product Dashboards
 

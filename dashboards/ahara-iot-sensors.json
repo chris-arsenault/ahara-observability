@@ -1,0 +1,213 @@
+{
+  "id": null,
+  "uid": "ahara-iot-sensors",
+  "title": "Ahara IoT / House Sensors",
+  "tags": ["ahara", "iot", "house-sensors"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "links": [
+    {
+      "title": "Ahara dashboards",
+      "type": "dashboards",
+      "tags": ["ahara"],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "apps"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "label": "Job",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "definition": "label_values(house_sensors_job_cycles_total, job)",
+        "query": { "query": "label_values(house_sensors_job_cycles_total, job)", "refId": "job" },
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Collection Pipeline Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 1,
+      "title": "Poll Results/sec",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 5, "x": 0, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_poll_results_total{job=~\"$job\"}[$__rate_interval]))", "legendFormat": "polls/sec" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 2 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "title": "Poll Error Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 5, "x": 5, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_poll_results_total{job=~\"$job\",outcome=\"error\"}[$__rate_interval])) / clamp_min(sum(rate(house_sensors_poll_results_total{job=~\"$job\"}[$__rate_interval])), 1)", "legendFormat": "error rate" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "decimals": 2, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.02 }, { "color": "red", "value": 0.1 } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 3,
+      "title": "Influx Write Error Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 5, "x": 10, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_influx_writes_total{job=~\"$job\",outcome=\"error\"}[$__rate_interval])) / clamp_min(sum(rate(house_sensors_influx_writes_total{job=~\"$job\"}[$__rate_interval])), 1)", "legendFormat": "error rate" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "decimals": 2, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.02 }, { "color": "red", "value": 0.1 } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 4,
+      "title": "Monitored Devices (avg)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 4, "x": 15, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_monitored_devices_sum{job=~\"$job\"}[$__rate_interval])) / clamp_min(sum(rate(house_sensors_monitored_devices_count{job=~\"$job\"}[$__rate_interval])), 1)", "legendFormat": "devices" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 5,
+      "title": "Discovery Runs/sec",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_discovery_runs_total{job=~\"$job\"}[$__rate_interval]))", "legendFormat": "runs/sec" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 3 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 6,
+      "title": "Poll Results by Outcome",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_poll_results_total{job=~\"$job\"}[$__rate_interval])) by (outcome)", "legendFormat": "{{outcome}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 30, "stacking": { "mode": "normal" }, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "error" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] },
+          { "matcher": { "id": "byName", "options": "success" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Collection Loops & Job Cycles/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_collection_loops_total{job=~\"$job\"}[$__rate_interval])) by (job)", "legendFormat": "loops {{job}}" },
+        { "refId": "B", "expr": "sum(rate(house_sensors_job_cycles_total{job=~\"$job\"}[$__rate_interval])) by (job)", "legendFormat": "cycles {{job}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Throughput & Devices",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 }
+    },
+    {
+      "id": 8,
+      "title": "Influx Write Lines/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_influx_write_lines_sum{job=~\"$job\"}[$__rate_interval])) by (job)", "legendFormat": "{{job}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 9,
+      "title": "Monitored vs Discovered Devices (avg)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_monitored_devices_sum{job=~\"$job\"}[$__rate_interval])) by (job) / clamp_min(sum(rate(house_sensors_monitored_devices_count{job=~\"$job\"}[$__rate_interval])) by (job), 1)", "legendFormat": "monitored {{job}}" },
+        { "refId": "B", "expr": "sum(rate(house_sensors_discovered_devices_sum{job=~\"$job\"}[$__rate_interval])) by (job) / clamp_min(sum(rate(house_sensors_discovered_devices_count{job=~\"$job\"}[$__rate_interval])) by (job), 1)", "legendFormat": "discovered {{job}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "custom": { "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "Latency",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 }
+    },
+    {
+      "id": 10,
+      "title": "Collection Loop Duration p50 / p95",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum(rate(house_sensors_collection_loop_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])) by (le))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum(rate(house_sensors_collection_loop_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])) by (le))", "legendFormat": "p95" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 11,
+      "title": "Job Duration p95 by Job",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum(rate(house_sensors_job_duration_ms_bucket{job=~\"$job\"}[$__rate_interval])) by (le, job))", "legendFormat": "{{job}} p95" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 12,
+      "title": "Backend Connections by Outcome",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(house_sensors_backend_connections_total{job=~\"$job\"}[$__rate_interval])) by (backend, outcome)", "legendFormat": "{{backend}} {{outcome}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    }
+  ]
+}

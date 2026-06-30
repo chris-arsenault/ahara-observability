@@ -1,128 +1,168 @@
 {
   "id": null,
   "uid": "ahara-observability-stack",
-  "title": "Ahara Observability Stack",
-  "tags": ["ahara", "observability"],
+  "title": "Ahara Pipeline Health",
+  "tags": ["ahara", "observability", "pipeline"],
   "timezone": "browser",
   "editable": true,
   "graphTooltip": 1,
   "schemaVersion": 39,
   "refresh": "30s",
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
+  "time": { "from": "now-6h", "to": "now" },
+  "links": [
+    {
+      "title": "Ahara dashboards",
+      "type": "dashboards",
+      "tags": ["ahara"],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "apps"
+    }
+  ],
   "panels": [
     {
+      "id": 100,
+      "type": "row",
+      "title": "Scrape Targets",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
       "id": 1,
-      "title": "Reverse Proxy Collector Accepted Spans",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
+      "title": "Target Health (up)",
+      "type": "state-timeline",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 6, "w": 16, "x": 0, "y": 1 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(otelcol_receiver_accepted_spans_total[$__rate_interval])) by (receiver)",
-          "legendFormat": "{{receiver}}"
-        }
+        { "refId": "A", "expr": "up", "legendFormat": "{{job}}" }
       ],
+      "options": { "mergeValues": true, "showValue": "never", "rowHeight": 0.9 },
       "fieldConfig": {
         "defaults": {
-          "unit": "ops"
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
         },
         "overrides": []
       }
     },
     {
       "id": 2,
-      "title": "Reverse Proxy Collector Send Failures",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
+      "title": "Targets Down",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 1 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(otelcol_exporter_send_failed_spans_total[$__rate_interval])) by (exporter) or sum(rate(otelcol_exporter_send_failed_metric_points_total[$__rate_interval])) by (exporter) or sum(rate(otelcol_exporter_send_failed_log_records_total[$__rate_interval])) by (exporter)",
-          "legendFormat": "{{exporter}}"
-        }
+        { "refId": "A", "expr": "count(up == 0) or vector(0)", "legendFormat": "down" }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
+        "defaults": { "unit": "short", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } },
         "overrides": []
-      }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Trace Pipeline (Tempo)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 }
     },
     {
       "id": 3,
-      "title": "VictoriaMetrics Ingestion",
+      "title": "Spans Received/sec",
       "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(rate(vm_rows_inserted_total[$__rate_interval]))",
-          "legendFormat": "rows/sec"
-        }
+        { "refId": "A", "expr": "sum(rate(tempo_distributor_spans_received_total[$__rate_interval]))", "legendFormat": "distributor received" },
+        { "refId": "B", "expr": "sum(rate(tempo_receiver_accepted_spans[$__rate_interval]))", "legendFormat": "receiver accepted" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "title": "Spans Discarded/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(tempo_discarded_spans_total[$__rate_interval])) by (reason)", "legendFormat": "{{reason}}" }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "ops"
-        },
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 20, "showPoints": "never" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 0.001 } ] } },
         "overrides": []
       }
     },
     {
-      "id": 4,
-      "title": "Recent Observability Logs",
-      "type": "logs",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      },
+      "id": 300,
+      "type": "row",
+      "title": "Log Pipeline (Loki)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 }
+    },
+    {
+      "id": 5,
+      "title": "Loki Lines Received/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "{service_name=~\"grafana|alloy|loki|tempo|victoriametrics|influxdb\"}"
-        }
+        { "refId": "A", "expr": "sum(rate(loki_distributor_lines_received_total[$__rate_interval]))", "legendFormat": "lines/sec" }
       ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "title": "Loki Bytes Received/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(loki_distributor_bytes_received_total[$__rate_interval]))", "legendFormat": "bytes/sec" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 400,
+      "type": "row",
+      "title": "Metric Pipeline (VictoriaMetrics)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 }
+    },
+    {
+      "id": 7,
+      "title": "Rows Inserted/sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(vm_rows_inserted_total[$__rate_interval])) by (type)", "legendFormat": "{{type}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 8,
+      "title": "Active Time Series (cardinality)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "targets": [
+        { "refId": "A", "expr": "sum(vm_rows{type=\"storage/inmemory\"}) or sum(vm_rows)", "legendFormat": "rows in storage" },
+        { "refId": "B", "expr": "sum(rate(vm_new_timeseries_created_total[$__rate_interval]))", "legendFormat": "new series/sec" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 500,
+      "type": "row",
+      "title": "Notes",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 }
+    },
+    {
+      "id": 9,
+      "title": "Collector / pipeline notes",
+      "type": "text",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 35 },
       "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "mode": "markdown",
+        "content": "**Reverse-proxy OTLP collector metrics are not scraped into this stack.** Panels here cover the TrueNAS-local backends (Tempo, Loki, VictoriaMetrics) and scrape-target health.\n\nThe `alloy` job (`alloy:12345`) is a configured scrape target but is **not currently reporting** (`up{job=\"alloy\"}` is absent), so no `otelcol_*` collector metrics exist in VictoriaMetrics. If you need local Alloy collector throughput/queue/drop metrics, fix that scrape first — then add `otelcol_receiver_*` / `otelcol_exporter_*` panels here."
       }
     }
   ]
