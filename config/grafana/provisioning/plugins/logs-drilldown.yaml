@@ -1,0 +1,13 @@
+apiVersion: 1
+
+apps:
+  - type: grafana-lokiexplore-app
+    org_id: 1
+    disabled: false
+    jsonData:
+      dataSource: loki
+      defaultTimeRange:
+        from: now-6h
+        to: now
+      interval: 7d
+      patternsDisabled: false
