@@ -1,8 +1,8 @@
 {
   "id": null,
   "uid": "ahara-service-overview",
-  "title": "Ahara Service Overview",
-  "tags": ["ahara", "otel"],
+  "title": "Ahara Telemetry Overview",
+  "tags": ["ahara", "otel", "telemetry"],
   "timezone": "browser",
   "editable": true,
   "graphTooltip": 1,
@@ -22,7 +22,7 @@
           "type": "prometheus",
           "uid": "victoriametrics"
         },
-        "query": "label_values(ahara_operation_count_total, service_name)",
+        "query": "label_values(service_name)",
         "includeAll": true,
         "multi": true,
         "current": {
@@ -32,6 +32,39 @@
         },
         "allValue": ".*",
         "refresh": 2
+      },
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "victoriametrics"
+        },
+        "query": "label_values(service_namespace)",
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "allValue": ".*",
+        "refresh": 2
+      },
+      {
+        "name": "operation_type",
+        "label": "Operation Type",
+        "type": "custom",
+        "query": "user_interaction,polling,background,health,system",
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "allValue": ".*"
       }
     ]
   },
@@ -53,7 +86,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\"}[$__rate_interval]))",
+          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval]))",
           "legendFormat": "requests/sec"
         }
       ],
@@ -74,7 +107,7 @@
     },
     {
       "id": 2,
-      "title": "Error Rate",
+      "title": "HTTP Error Rate",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -89,7 +122,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_outcome=\"failed\"}[$__rate_interval])) / clamp_min(sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\"}[$__rate_interval])), 1)",
+          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_outcome=\"failed\"}[$__rate_interval])) / clamp_min(sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])), 1)",
           "legendFormat": "error rate"
         }
       ],
@@ -142,7 +175,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum(rate(ahara_http_server_request_duration_ms_bucket{service_name=~\"$service\"}[$__rate_interval])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(ahara_http_server_request_duration_ms_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le))",
           "legendFormat": "p95"
         }
       ],
@@ -199,7 +232,92 @@
     },
     {
       "id": 5,
-      "title": "Requests by Service",
+      "title": "App Work/sec",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) or vector(0)) + (sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) or vector(0))",
+          "legendFormat": "work/sec"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Failed App Events",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(increase(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\",operation_outcome=\"failed\"}[$__range])) or vector(0)) + (sum(increase({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\",outcome=~\"error|invalid|misconfigured\"}[$__range])) or vector(0))",
+          "legendFormat": "failed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 7,
+      "title": "HTTP Requests by Service",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -209,12 +327,12 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\"}[$__rate_interval])) by (service_name)",
+          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (service_name)",
           "legendFormat": "{{service_name}}"
         }
       ],
@@ -226,8 +344,8 @@
       }
     },
     {
-      "id": 6,
-      "title": "Operations by Type",
+      "id": 8,
+      "title": "Work by Operation Type",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -237,13 +355,18 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\"}[$__rate_interval])) by (operation_type)",
-          "legendFormat": "{{operation_type}}"
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (operation_type)",
+          "legendFormat": "lambda {{operation_type}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (operation_type)",
+          "legendFormat": "local {{operation_type}}"
         }
       ],
       "fieldConfig": {
@@ -254,8 +377,8 @@
       }
     },
     {
-      "id": 7,
-      "title": "HTTP Outcomes",
+      "id": 9,
+      "title": "Work by Service",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -265,25 +388,96 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 16
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(ahara_http_server_request_count_total{service_name=~\"$service\"}[$__rate_interval])) by (operation_outcome)",
-          "legendFormat": "{{operation_outcome}}"
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (service_name)",
+          "legendFormat": "{{service_name}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (service_name)",
+          "legendFormat": "{{service_name}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps"
+          "unit": "ops"
         },
         "overrides": []
       }
     },
     {
-      "id": 8,
-      "title": "Top Operations",
+      "id": 10,
+      "title": "Outcomes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (operation_outcome)",
+          "legendFormat": "lambda {{operation_outcome}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (outcome)",
+          "legendFormat": "local {{outcome}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "title": "App Duration p95 by Service",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(ahara_operation_duration_ms_bucket{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le, service_name))",
+          "legendFormat": "{{service_name}} lambda"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum(rate({__name__=~\"house_sensors_.*_ms_bucket\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__rate_interval])) by (le, service_name))",
+          "legendFormat": "{{service_name}} local"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "title": "Top App Events",
       "type": "table",
       "datasource": {
         "type": "prometheus",
@@ -293,12 +487,18 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 24
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(20, sum(increase(ahara_operation_count_total{service_name=~\"$service\"}[$__range])) by (service_name, operation_name, operation_type, operation_outcome))",
+          "expr": "topk(20, sum(increase(ahara_operation_count_total{service_name=~\"$service\",operation_type=~\"$operation_type\"}[$__range])) by (service_name, operation_name, operation_type, operation_outcome))",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "topk(20, sum(increase({__name__=~\"house_sensors_(backend_connections|collection_loops|device_validation|discovery_runs|influx_writes|job_cycles|poll_results)_total\",service_name=~\"$service\",service_namespace=~\"$namespace\",operation_type=~\"$operation_type\"}[$__range])) by (__name__, service_name, operation_type, outcome, job, backend))",
           "format": "table",
           "instant": true
         }
@@ -306,4 +506,3 @@
     }
   ]
 }
-

@@ -43,11 +43,18 @@ VictoriaMetrics data.
 The `Ahara Storage Volume` dashboard tracks local ingest rates, filesystem
 capacity, disk write throughput, and scrape health.
 
+The `Ahara Telemetry Overview` dashboard is the shared cross-product operations
+surface. It uses common OTEL labels such as `service.name`, `service.namespace`,
+and `operation.type` so individual services do not need their own telemetry
+dashboard just to expose request, polling, background-job, outcome, and duration
+health.
+
 ## Product Dashboards
 
-This repo owns the Grafana runtime, datasource provisioning, and platform-level
-dashboards. Product/domain dashboards should live in the product repo that owns
-the query semantics, usually under `observability/dashboards/*.json`.
+This repo owns the Grafana runtime, datasource provisioning, platform-level
+dashboards, and shared cross-product telemetry dashboards. Product/domain
+dashboards should live in the product repo that owns the query semantics,
+usually under `observability/dashboards/*.json`.
 
 Product repos deploy those dashboards through the shared Ahara CI workflow by
 declaring `observability.dashboards` in `platform.yml`. CI invokes the

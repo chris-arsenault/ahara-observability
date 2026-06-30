@@ -42,12 +42,13 @@ TrueNAS-local services can use the LAN OTLP endpoint directly.
 
 Application teams should instrument services with Ahara OTEL wrappers and send
 traces, metrics, and logs to `/ahara/observability/otlp-http-endpoint`. New
-product dashboards should be provisioned here in Grafana and should use Loki,
-Tempo, and VictoriaMetrics datasources, not CloudWatch.
+product dashboards should target shared Grafana with Loki, Tempo, and
+VictoriaMetrics datasources, not CloudWatch.
 
-Dashboard source should stay in the repo that owns the domain data. Product
-repos declare `observability.dashboards` in `platform.yml`; shared CI invokes
-the Grafana dashboard deploy Lambda to upsert those dashboards without
+Shared cross-product telemetry dashboards live in this repo. Dashboard source
+for product/domain data should stay in the repo that owns the domain data.
+Product repos declare `observability.dashboards` in `platform.yml`; shared CI
+invokes the Grafana dashboard deploy Lambda to upsert those dashboards without
 redeploying this Grafana stack.
 
 The dashboard deploy Lambda reads its Grafana service-account token from:
