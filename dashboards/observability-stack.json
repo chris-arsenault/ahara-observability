@@ -222,7 +222,7 @@
       "gridPos": { "h": 3, "w": 24, "x": 0, "y": 51 },
       "options": {
         "mode": "markdown",
-        "content": "Series are split by `instance`. The **local router** Alloy (`alloy:12345`) is scraped by vmagent in this stack. The **AWS edge gateway** Alloy only appears here if `ahara-infra` ships its `otelcol_*` self-metrics to this VictoriaMetrics; otherwise its own health is owned on the AWS side."
+        "content": "Series are split by `instance`. The **local router** Alloy (`alloy:12345`) is scraped by vmagent in this stack. The **AWS edge gateway** Alloy (`reverse-proxy-gateway`) self-scrapes its own `/metrics` and remote-writes to this VictoriaMetrics from `ahara-infra` (reverse-proxy Alloy template), so both collectors appear here once each side is deployed."
       }
     }
   ]
