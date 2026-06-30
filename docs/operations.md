@@ -13,17 +13,17 @@ The managed stack listens on `192.168.66.3:30038`.
 ## Deployment Mode
 
 The deployed Compose file is controlled by `truenas_compose_path` in
-`platform.yml`:
+`platform.yml` and should remain `compose.yaml`.
 
-- `compose.yaml`: full TrueNAS-local stack.
-- `compose.cloudwatch.yaml`: Grafana only, for CloudWatch-backed operation.
-
-The default is `compose.yaml`. Switching modes is a one-line manifest change and
-redeploy.
+Do not add a CloudWatch-only deployment mode or CloudWatch-backed product
+dashboards. CloudWatch is still useful for AWS fallback logs and selected
+AWS-native alarms, but the operational dashboard surface for Ahara products is
+Grafana backed by Loki, Tempo, and VictoriaMetrics.
 
 ## OTLP Ingestion
 
-TrueNAS Tempo accepts OTLP from the AWS reverse-proxy gateway on the LAN:
+TrueNAS Alloy accepts OTLP from the AWS reverse-proxy gateway and local LAN
+producers:
 
 ```text
 grpc: 192.168.66.3:4317
@@ -38,6 +38,26 @@ Ahara Lambdas should use the AWS-private endpoint published by `ahara-infra`:
 
 Do not point Lambdas directly at the TrueNAS address. The reverse proxy Alloy
 gateway owns collection, batching, retry, and routing across the LAN boundary.
+TrueNAS-local services can use the LAN OTLP endpoint directly.
+
+Application teams should instrument services with Ahara OTEL wrappers and send
+traces, metrics, and logs to `/ahara/observability/otlp-http-endpoint`. New
+product dashboards should be provisioned here in Grafana and should use Loki,
+Tempo, and VictoriaMetrics datasources, not CloudWatch.
+
+Dashboard source should stay in the repo that owns the domain data. Product
+repos declare `observability.dashboards` in `platform.yml`; shared CI invokes
+the Grafana dashboard deploy Lambda to upsert those dashboards without
+redeploying this Grafana stack.
+
+The dashboard deploy Lambda reads its Grafana service-account token from:
+
+```text
+/ahara/observability/grafana-dashboard-deployer-token
+```
+
+Keep that token in SSM as a SecureString. Product repos should only receive
+permission to invoke the deploy Lambda, not direct access to this token.
 
 ## Host Log Ingestion
 

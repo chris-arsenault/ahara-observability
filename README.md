@@ -11,6 +11,7 @@ Komodo to deploy upstream images directly.
 | Service | Purpose |
 | --- | --- |
 | Grafana | Dashboards, Explore, alerting |
+| Alloy | Local OTLP collector and router |
 | vmagent | Local stack and host metrics scraper |
 | VictoriaMetrics | Primary Prometheus-compatible metrics backend |
 | Loki | OTLP log storage |
@@ -28,26 +29,30 @@ and verifies required config files exist.
 
 ## Deployment Modes
 
-The default deployment mode is the full TrueNAS-local observability stack:
+The deployed mode is the full TrueNAS-local observability stack:
 
 ```text
 truenas_compose_path: compose.yaml
 ```
 
-Switch `truenas_compose_path` to `compose.cloudwatch.yaml` to run Grafana only.
-In that mode, Grafana can still use the provisioned CloudWatch datasource, but
-local Loki, Tempo, VictoriaMetrics, vmagent, InfluxDB, and node-exporter are not
-started.
-
-Grafana uses AWS SDK default credential resolution for CloudWatch. On TrueNAS,
-provide either environment credentials or a credentials file under:
-
-```text
-/mnt/apps/apps/ahara-observability/aws
-```
+Do not create CloudWatch dashboards for product telemetry. CloudWatch remains an
+AWS fallback surface for Lambda/runtime logs and selected AWS-native alarms, but
+Ahara product dashboards belong in this Grafana stack using Loki, Tempo, and
+VictoriaMetrics data.
 
 The `Ahara Storage Volume` dashboard tracks local ingest rates, filesystem
 capacity, disk write throughput, and scrape health.
+
+## Product Dashboards
+
+This repo owns the Grafana runtime, datasource provisioning, and platform-level
+dashboards. Product/domain dashboards should live in the product repo that owns
+the query semantics, usually under `observability/dashboards/*.json`.
+
+Product repos deploy those dashboards through the shared Ahara CI workflow by
+declaring `observability.dashboards` in `platform.yml`. CI invokes the
+`ahara-grafana-dashboard-deploy` Lambda published by `ahara-infra`; Grafana does
+not need to be restarted or redeployed for dashboard-only changes.
 
 ## Grafana Authentication
 
@@ -71,9 +76,10 @@ OTEL_LOGS_EXPORTER=otlp
 OTEL_EXPORTER_OTLP_ENDPOINT=<value of /ahara/observability/otlp-http-endpoint>
 ```
 
-The gateway runs on the existing reverse proxy EC2 instance and exports directly
-to Loki, Tempo, and VictoriaMetrics in this TrueNAS stack. Producers do not need
-direct LAN/VPN coupling.
+The gateway runs on the existing reverse proxy EC2 instance and exports to the
+local Alloy collector in this TrueNAS stack. TrueNAS-local producers should send
+OTLP directly to `http://192.168.66.3:4318`; Alloy then routes logs to Loki,
+metrics to VictoriaMetrics, and traces to Tempo.
 
 EC2 host agents send Loki push traffic to the same reverse proxy host. Only the
 reverse proxy writes across the VPN to the TrueNAS Loki, Tempo, and

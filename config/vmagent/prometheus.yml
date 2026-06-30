@@ -7,6 +7,11 @@ scrape_configs:
       - targets:
           - grafana:3000
 
+  - job_name: alloy
+    static_configs:
+      - targets:
+          - alloy:12345
+
   - job_name: loki
     static_configs:
       - targets:

@@ -1,0 +1,97 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+otelcol.receiver.otlp "local" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.memory_limiter.local.input]
+    logs    = [otelcol.processor.memory_limiter.local.input]
+    traces  = [otelcol.processor.memory_limiter.local.input]
+  }
+}
+
+otelcol.processor.memory_limiter "local" {
+  check_interval = "1s"
+  limit          = "192MiB"
+  spike_limit    = "48MiB"
+
+  output {
+    metrics = [otelcol.processor.batch.local.input]
+    logs    = [otelcol.processor.batch.local.input]
+    traces  = [otelcol.processor.batch.local.input]
+  }
+}
+
+otelcol.processor.batch "local" {
+  timeout             = "5s"
+  send_batch_size     = 8192
+  send_batch_max_size = 16384
+
+  output {
+    metrics = [otelcol.exporter.prometheus.victoriametrics.input]
+    logs    = [otelcol.exporter.loki.local.input]
+    traces  = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.prometheus "victoriametrics" {
+  forward_to = [prometheus.remote_write.victoriametrics.receiver]
+}
+
+prometheus.remote_write "victoriametrics" {
+  endpoint {
+    url = "http://victoriametrics:8428/api/v1/write"
+  }
+}
+
+loki.write "local" {
+  endpoint {
+    url                 = "http://loki:3100/loki/api/v1/push"
+    batch_wait          = "1s"
+    batch_size          = "1MiB"
+    remote_timeout      = "5s"
+    min_backoff_period  = "500ms"
+    max_backoff_period  = "30s"
+    max_backoff_retries = 10
+    name                = "loki"
+  }
+}
+
+otelcol.exporter.loki "local" {
+  forward_to = [loki.write.local.receiver]
+}
+
+otelcol.exporter.otlp "tempo" {
+  timeout = "5s"
+
+  client {
+    endpoint = "tempo:4317"
+
+    tls {
+      insecure = true
+    }
+  }
+
+  retry_on_failure {
+    enabled          = true
+    initial_interval = "1s"
+    max_interval     = "30s"
+    max_elapsed_time = "5m"
+  }
+
+  sending_queue {
+    enabled           = true
+    num_consumers     = 4
+    queue_size        = 2000
+    block_on_overflow = false
+  }
+}

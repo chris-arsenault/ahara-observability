@@ -13,11 +13,6 @@ services:
     ports:
       - "30038:3000"
     environment:
-      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
-      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
-      AWS_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
-      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
-      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_AUTH_BASIC_ENABLED: "false"
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
@@ -49,7 +44,6 @@ services:
       - /mnt/apps/apps/ahara-observability/grafana:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./dashboards:/var/lib/grafana/dashboards:ro
-      - /mnt/apps/apps/ahara-observability/aws:/usr/share/grafana/.aws:ro
     networks:
       - observability
 
@@ -94,6 +88,34 @@ services:
     networks:
       - observability
 
+  alloy:
+    image: grafana/alloy:v1.11.3
+    container_name: ahara-alloy
+    init: true
+    user: *observability-user
+    restart: unless-stopped
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - loki
+      - tempo
+      - victoriametrics
+    volumes:
+      - ./config/alloy/local.alloy:/etc/alloy/config.alloy:ro
+      - /mnt/apps/apps/ahara-observability/alloy:/var/lib/alloy
+    networks:
+      - observability
+
   loki:
     image: grafana/loki:3.7.3
     container_name: ahara-loki
@@ -124,9 +146,6 @@ services:
       - no-new-privileges:true
     command:
       - -config.file=/etc/tempo/tempo.yaml
-    ports:
-      - "4317:4317"
-      - "4318:4318"
     volumes:
       - ./config/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - /mnt/apps/apps/ahara-observability/tempo:/var/tempo
