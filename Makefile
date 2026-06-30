@@ -1,6 +1,6 @@
-.PHONY: ci compose-config compose-config-cloudwatch dashboards required-files
+.PHONY: ci compose-config compose-config-cloudwatch dashboards required-files scripts
 
-ci: compose-config compose-config-cloudwatch dashboards required-files
+ci: compose-config compose-config-cloudwatch dashboards scripts required-files
 
 compose-config:
 	docker compose --env-file .env.example -f compose.yaml config >/tmp/ahara-observability-compose.yaml
@@ -10,6 +10,9 @@ compose-config-cloudwatch:
 
 dashboards:
 	find dashboards -name '*.json' -print0 | xargs -0 -n1 jq empty
+
+scripts:
+	find scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
 required-files:
 	test -f config/loki/loki.yaml
