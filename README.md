@@ -51,7 +51,8 @@ can pivot fleet → service → trace → log without leaving Grafana.
 | `Ahara Telemetry Overview` | Cross-product golden signals (HTTP/operation/FaaS RED) with a service table that drills into Service Detail, Traces, and Logs. |
 | `Ahara Service Detail` | Single-service deep dive: HTTP RED, operations, FaaS, recent traces, and recent logs for one `service`. |
 | `Ahara Traces & Spans` | Span RED from Tempo span-metrics plus TraceQL search panels that open the span waterfall, error/slowest traces, and the service graph. |
-| `Ahara Logs` | Filterable log surface (service, level, host role, source, line filter) with volume-by-level/service and a rich log stream that links to traces. |
+| `Ahara Application Logs` | Product/service log surface only (excludes EC2/host logs): volume by service and level, top services, filterable log stream. |
+| `Ahara Infrastructure Logs` | EC2 host and network logs (nat/wireguard/reverse-proxy: nginx, sshd, kernel, audit, WireGuard, cloud-init). Pre-filters ALB health checks and Grafana's own polling by default (~99% of raw `nginx-access` volume) via a "Noise filter" toggle; raw volume by source stays visible above the log stream for context. |
 | `Ahara IoT / House Sensors` | The `house_sensors_*` polling pipeline: poll/influx outcomes, devices, collection-loop and job latency. |
 | `Ahara Pipeline Health` | Telemetry-pipeline health: scrape-target `up`, Tempo/Loki/VictoriaMetrics ingest and discards, and Alloy collector receiver/exporter/queue metrics split by `instance`. |
 | `Ahara Storage Volume` | Local ingest rates, filesystem capacity, disk write throughput, VM on-disk size, cardinality churn, and scrape health. |

@@ -412,7 +412,7 @@
             },
             {
               "title": "Logs for ${__data.fields.Service}",
-              "url": "/d/ahara-logs?var-service_name=${__data.fields.Service}&${__url_time_range}"
+              "url": "/d/ahara-application-logs?var-service_name=${__data.fields.Service}&${__url_time_range}"
             }
           ]
         },

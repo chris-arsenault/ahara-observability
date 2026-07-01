@@ -1,0 +1,200 @@
+{
+  "id": null,
+  "uid": "ahara-infrastructure-logs",
+  "title": "Ahara Infrastructure Logs",
+  "tags": ["ahara", "logs", "infrastructure", "ec2"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "links": [
+    {
+      "title": "Ahara dashboards",
+      "type": "dashboards",
+      "tags": ["ahara"],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "apps"
+    }
+  ],
+  "description": "EC2 host and network logs (nat/wireguard/reverse-proxy: nginx, sshd, kernel, audit, WireGuard, cloud-init). Product/service logs live on the separate Ahara Application Logs dashboard. The default log stream hides ALB health checks and Grafana's own polling, which make up ~99% of raw nginx-access volume -- switch 'Noise filter' to 'Show everything' to see it.",
+  "templating": {
+    "list": [
+      {
+        "name": "host_role",
+        "label": "Host",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "definition": "label_values({service_name=\"ahara-ec2\"}, host_role)",
+        "query": { "label": "host_role", "refId": "host_role", "stream": "{service_name=\"ahara-ec2\"}", "type": 1 },
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1
+      },
+      {
+        "name": "source",
+        "label": "Source",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "definition": "label_values({service_name=\"ahara-ec2\"}, source)",
+        "query": { "label": "source", "refId": "source", "stream": "{service_name=\"ahara-ec2\"}", "type": 1 },
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1
+      },
+      {
+        "name": "noise",
+        "label": "Noise filter",
+        "type": "custom",
+        "query": "Hide health checks + polling (recommended) : != `ELB-HealthChecker` != `/api/live/ws` != `/api/login/ping`,Show everything : ",
+        "includeAll": false,
+        "multi": false,
+        "current": { "selected": true, "text": "Hide health checks + polling (recommended)", "value": "!= `ELB-HealthChecker` != `/api/live/ws` != `/api/login/ping`" }
+      },
+      {
+        "name": "search",
+        "label": "Line filter",
+        "type": "textbox",
+        "query": "",
+        "current": { "selected": false, "text": "", "value": "" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 1,
+      "title": "Raw Lines/sec (all sources, unfiltered)",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate({service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} [$__rate_interval]))", "legendFormat": "raw lines/sec" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "decimals": 2 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "title": "Noise Filtered Out",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "description": "Share of raw volume hidden by the health-check/polling exclusion, regardless of the current Noise filter selection -- so you always know how much is being suppressed.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "1 - (sum(count_over_time({service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} != `ELB-HealthChecker` != `/api/live/ws` != `/api/login/ping` [$__range])) or vector(0)) / clamp_min(sum(count_over_time({service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} [$__range])), 1)",
+          "legendFormat": "filtered"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 1 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 3,
+      "title": "Errors/Warnings (nginx-error, sshd, audit)",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate({service_name=\"ahara-ec2\", source=~\"nginx-error|journal-audit\", host_role=~\"$host_role\"} [$__rate_interval]))", "legendFormat": "errors+audit/sec" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "decimals": 3, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.02 }, { "color": "red", "value": 0.2 } ] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 4,
+      "title": "Hosts Logging",
+      "type": "stat",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "count(sum by (host_role) (count_over_time({service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} [$__range])))", "legendFormat": "hosts" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 5,
+      "title": "Raw Log Volume by Source",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 5 },
+      "description": "Unfiltered, so the dominant sources (typically nginx-access health checks/polling) are visible for context even when the log stream below hides them.",
+      "targets": [
+        { "refId": "A", "expr": "sum by (source) (count_over_time({service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} [$__interval]))", "legendFormat": "{{source}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" }, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "title": "Log Volume by Host",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 5 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (host_role) (count_over_time({service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} [$__interval]))", "legendFormat": "{{host_role}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" }, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 7,
+      "title": "Top Sources by Raw Volume",
+      "type": "table",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        { "refId": "A", "expr": "topk(15, sum by (source, host_role) (count_over_time({service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} [$__range])))", "instant": true }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "Value": "lines", "source": "Source", "host_role": "Host" } } },
+        { "id": "sortBy", "options": { "fields": "", "sort": [ { "field": "lines", "desc": true } ] } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "filterable": true } }, "overrides": [] }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Logs (pre-filtered by default -- see 'Noise filter' variable above)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 }
+    },
+    {
+      "id": 8,
+      "title": "Log Stream",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 21 },
+      "targets": [
+        { "refId": "A", "expr": "{service_name=\"ahara-ec2\", host_role=~\"$host_role\", source=~\"$source\"} $noise |~ `(?i)$search`" }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    }
+  ]
+}
