@@ -60,8 +60,8 @@ services:
       - -storageDataPath=/storage
       - -retentionPeriod=12
       - -httpListenAddr=:8428
-    # Not published to the host — external writers go through ingest-gateway
-    # (JWT auth). Internal clients reach it as victoriametrics:8428.
+    ports:
+      - "8428:8428"
     volumes:
       - /mnt/apps/apps/ahara-observability/victoriametrics:/storage
     networks:
@@ -103,9 +103,10 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
-    # OTLP (4317/4318) is not published directly — external producers go through
-    # ingest-gateway (JWT auth). 12345 (UI/metrics) stays internal; vmagent
-    # scrapes it as alloy:12345.
+    ports:
+      - "12345:12345"
+      - "4317:4317"
+      - "4318:4318"
     depends_on:
       - loki
       - tempo
@@ -113,44 +114,6 @@ services:
     volumes:
       - ./config/alloy/local.alloy:/etc/alloy/config.alloy:ro
       - /mnt/apps/apps/ahara-observability/alloy:/var/lib/alloy
-    networks:
-      - observability
-
-  ingest-gateway:
-    image: envoyproxy/envoy:v1.32-latest
-    container_name: ahara-ingest-gateway
-    init: true
-    restart: unless-stopped
-    stop_grace_period: 30s
-    security_opt:
-      - no-new-privileges:true
-    # Renders the public Cognito issuer/JWKS/scope into the Envoy config at
-    # start (Envoy has no native env substitution), then runs Envoy. Only this
-    # service publishes the ingest ports; the backends stay internal.
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        sed -e "s#@COGNITO_ISSUER@#$${COGNITO_ISSUER}#g" \
-            -e "s#@COGNITO_JWKS_URI@#$${COGNITO_JWKS_URI}#g" \
-            -e "s#@INGEST_SCOPE@#$${INGEST_SCOPE}#g" \
-            /etc/envoy/envoy.yaml > /tmp/envoy.yaml
-        exec /usr/local/bin/envoy -c /tmp/envoy.yaml
-    environment:
-      COGNITO_ISSUER: "${COGNITO_ISSUER}"
-      COGNITO_JWKS_URI: "${COGNITO_JWKS_URI}"
-      INGEST_SCOPE: "${INGEST_SCOPE:-observability/ingest}"
-    ports:
-      - "8428:8428"
-      - "3100:3100"
-      - "4317:4317"
-      - "4318:4318"
-    depends_on:
-      - victoriametrics
-      - loki
-      - alloy
-    volumes:
-      - ./config/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
     networks:
       - observability
 
@@ -165,8 +128,8 @@ services:
       - no-new-privileges:true
     command:
       - -config.file=/etc/loki/loki.yaml
-    # Not published to the host — external pushers go through ingest-gateway
-    # (JWT auth). Internal clients reach it as loki:3100.
+    ports:
+      - "3100:3100"
     volumes:
       - ./config/loki/loki.yaml:/etc/loki/loki.yaml:ro
       - /mnt/apps/apps/ahara-observability/loki:/loki

@@ -102,28 +102,9 @@ OTEL_EXPORTER_OTLP_ENDPOINT=<value of /ahara/observability/otlp-http-endpoint>
 
 The gateway runs on the existing reverse proxy EC2 instance and exports to the
 local Alloy collector in this TrueNAS stack. TrueNAS-local producers should send
-OTLP to `http://192.168.66.3:4318`; Alloy then routes logs to Loki, metrics to
-VictoriaMetrics, and traces to Tempo.
+OTLP directly to `http://192.168.66.3:4318`; Alloy then routes logs to Loki,
+metrics to VictoriaMetrics, and traces to Tempo.
 
 EC2 host agents send Loki push traffic to the same reverse proxy host. Only the
 reverse proxy writes across the VPN to the TrueNAS Loki, Tempo, and
 VictoriaMetrics endpoints.
-
-## Ingest Authentication
-
-The telemetry backends are not published directly. VictoriaMetrics, Loki, and
-the OTLP receivers (`8428`, `3100`, `4318`, `4317`) are fronted by an Envoy
-`ingest-gateway` that requires a valid **Cognito machine-to-machine
-(client-credentials) JWT** carrying the `observability/ingest` scope. Producers
-(the reverse-proxy Alloy gateway, EC2 log agents, and LAN producers) obtain a
-token from `https://auth.services.ahara.io/oauth2/token` and present it as a
-bearer credential — Alloy's `oauth2` / `otelcol.auth.oauth2` blocks handle this
-automatically. The M2M resource server and client are defined in `ahara-infra`
-(`services/observability-ingest.tf`); the client id/secret live in SSM
-(`/ahara/observability/ingest-*`) and are read only by producers.
-
-The gateway needs only Cognito's **public** issuer/JWKS (`COGNITO_ISSUER`,
-`COGNITO_JWKS_URI`) — no ingest secret is stored on TrueNAS. Internal
-service-to-service traffic (Grafana datasources, vmagent, Tempo remote-write)
-continues over the Docker network unauthenticated and is unaffected. Grafana
-(`30038`, Cognito OIDC) and InfluxDB (`18086`, token) authenticate as before.

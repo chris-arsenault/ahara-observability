@@ -75,37 +75,6 @@ the `ahara-dashboard-deployer` service account, rotates the
 auth enabled for this admin API flow, while the login form remains disabled and
 browser sign-in continues through Cognito OAuth auto-login.
 
-## Ingest Authentication
-
-VictoriaMetrics, Loki, and the OTLP receivers are not published directly. The
-Envoy `ingest-gateway` publishes `8428`, `3100`, `4318`, and `4317`, and
-validates a Cognito client-credentials (M2M) JWT with the `observability/ingest`
-scope on every request before proxying to the internal backend. The backends
-remain on the Docker network for internal clients (Grafana, vmagent, Tempo),
-which are unaffected.
-
-- **M2M identity** (`ahara-infra/.../services/observability-ingest.tf`): a
-  Cognito resource server `observability` with an `ingest` scope, and a shared
-  `client_credentials` app client. Credentials publish to SSM at
-  `/ahara/observability/ingest-client-id` and `-ingest-client-secret`
-  (SecureString).
-- **Producers**: the reverse-proxy Alloy gateway and EC2 log agents fetch the
-  credential from SSM at boot (`common_user_data` writes it into the Alloy env
-  file) and attach tokens via Alloy `oauth2` / `otelcol.auth.oauth2` blocks. LAN
-  producers (house-sensors) must do the same — **outstanding follow-up in the
-  `house-sensors` repo.**
-- **Gateway config** (`config/envoy/envoy.yaml`): needs only the public
-  `COGNITO_ISSUER` / `COGNITO_JWKS_URI` (pool id, `us-east-1`) and `INGEST_SCOPE`
-  via env. No ingest secret is stored on TrueNAS. Envoy needs outbound HTTPS to
-  fetch the Cognito JWKS.
-
-**Deploy ordering (no ingestion outage):** apply `ahara-infra` first (creates
-the resource server, client, and SSM params, and redeploys producers carrying
-tokens — a no-op while the backends are still open), then deploy this stack
-(`ingest-gateway` + unpublished backends) to turn enforcement on. Roll back by
-reverting the enforcement commit here. Validate the gateway config with
-`envoy --mode validate -c config/envoy/envoy.yaml` before deploying.
-
 ## Host Log Ingestion
 
 EC2 Alloy agents push host logs to the reverse proxy's private Loki-compatible
