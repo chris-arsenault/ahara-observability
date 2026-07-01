@@ -124,6 +124,10 @@ services:
     stop_grace_period: 30s
     security_opt:
       - no-new-privileges:true
+    labels:
+      # Bump to force a gateway recreate so Envoy re-resolves backend DNS after
+      # a deploy that also recreated the backends (avoids a stale-IP race).
+      com.ahara.gateway-rev: "2"
     # Renders the public Cognito issuer/JWKS/scope into the Envoy config at
     # start (Envoy has no native env substitution), then runs Envoy. Only this
     # service publishes the ingest ports; the backends stay internal.
