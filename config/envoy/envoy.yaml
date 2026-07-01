@@ -157,6 +157,9 @@ static_resources:
     - name: victoriametrics
       type: STRICT_DNS
       connect_timeout: 5s
+      # VictoriaMetrics binds IPv4 only; force V4 so Envoy doesn't pick the
+      # container's IPv6 address (which refuses connections).
+      dns_lookup_family: V4_ONLY
       load_assignment:
         cluster_name: victoriametrics
         endpoints:
@@ -166,6 +169,7 @@ static_resources:
     - name: loki
       type: STRICT_DNS
       connect_timeout: 5s
+      dns_lookup_family: V4_ONLY
       load_assignment:
         cluster_name: loki
         endpoints:
@@ -175,6 +179,7 @@ static_resources:
     - name: alloy_http
       type: STRICT_DNS
       connect_timeout: 5s
+      dns_lookup_family: V4_ONLY
       load_assignment:
         cluster_name: alloy_http
         endpoints:
@@ -184,6 +189,7 @@ static_resources:
     - name: alloy_grpc
       type: STRICT_DNS
       connect_timeout: 5s
+      dns_lookup_family: V4_ONLY
       typed_extension_protocol_options:
         envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
           "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
@@ -213,4 +219,4 @@ static_resources:
 
 admin:
   address:
-    socket_address: { address: 0.0.0.0, port_value: 9901 }
+    socket_address: { address: 127.0.0.1, port_value: 9901 }

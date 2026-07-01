@@ -145,7 +145,6 @@ services:
       - "3100:3100"
       - "4317:4317"
       - "4318:4318"
-      - "9901:9901"
     depends_on:
       - victoriametrics
       - loki
