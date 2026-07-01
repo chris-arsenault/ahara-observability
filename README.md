@@ -55,6 +55,7 @@ can pivot fleet → service → trace → log without leaving Grafana.
 | `Ahara IoT / House Sensors` | The `house_sensors_*` polling pipeline: poll/influx outcomes, devices, collection-loop and job latency. |
 | `Ahara Pipeline Health` | Telemetry-pipeline health: scrape-target `up`, Tempo/Loki/VictoriaMetrics ingest and discards, and Alloy collector receiver/exporter/queue metrics split by `instance`. |
 | `Ahara Storage Volume` | Local ingest rates, filesystem capacity, disk write throughput, VM on-disk size, cardinality churn, and scrape health. |
+| `Ahara Network Health` | AWS network host health (CPU/mem/disk/network for NAT, WireGuard, reverse proxy) and WireGuard tunnel status (interface up/down, peer handshake age, peer throughput). |
 
 The Overview uses common OTEL labels (`service_name`, `operation_type`,
 `operation_name`) so individual services do not need their own dashboard to

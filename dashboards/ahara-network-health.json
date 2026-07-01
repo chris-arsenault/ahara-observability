@@ -1,0 +1,199 @@
+{
+  "id": null,
+  "uid": "ahara-network-health",
+  "title": "Ahara Network Health",
+  "tags": ["ahara", "network", "vpn"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "links": [
+    {
+      "title": "Ahara dashboards",
+      "type": "dashboards",
+      "tags": ["ahara"],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "apps"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "label": "Host",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+        "definition": "label_values(up{job=\"host-metrics\"}, instance)",
+        "query": { "query": "label_values(up{job=\"host-metrics\"}, instance)", "refId": "instance" },
+        "includeAll": true,
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Host Health — NAT / WireGuard / Reverse Proxy",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 1,
+      "title": "Hosts Up",
+      "type": "state-timeline",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"host-metrics\",instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+      ],
+      "options": { "mergeValues": true, "showValue": "never", "rowHeight": 0.9 },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        { "refId": "A", "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"host-metrics\",instance=~\"$instance\",mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 10, "showPoints": "never" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Memory Used",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        { "refId": "A", "expr": "100 * (1 - (node_memory_MemAvailable_bytes{job=\"host-metrics\",instance=~\"$instance\"} / node_memory_MemTotal_bytes{job=\"host-metrics\",instance=~\"$instance\"}))", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 10, "showPoints": "never" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Disk Used",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        { "refId": "A", "expr": "100 * (1 - (node_filesystem_avail_bytes{job=\"host-metrics\",instance=~\"$instance\",fstype!~\"tmpfs|overlay\",mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"host-metrics\",instance=~\"$instance\",fstype!~\"tmpfs|overlay\",mountpoint=\"/\"}))", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 10, "showPoints": "never" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "Network Throughput",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (instance) (rate(node_network_receive_bytes_total{job=\"host-metrics\",instance=~\"$instance\",device!~\"lo|wg0\"}[5m]))", "legendFormat": "{{instance}} rx" },
+        { "refId": "B", "expr": "sum by (instance) (rate(node_network_transmit_bytes_total{job=\"host-metrics\",instance=~\"$instance\",device!~\"lo|wg0\"}[5m]))", "legendFormat": "{{instance}} tx" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "title": "Load Average (1m)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+      "targets": [
+        { "refId": "A", "expr": "node_load1{job=\"host-metrics\",instance=~\"$instance\"}", "legendFormat": "{{instance}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] }
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "WireGuard Tunnel",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 }
+    },
+    {
+      "id": 7,
+      "title": "Tunnel Interface Status",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 31 },
+      "targets": [
+        { "refId": "A", "expr": "wg_interface_up{interface=\"wg0\"}", "legendFormat": "wg0" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [ { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } } ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "value" }
+    },
+    {
+      "id": 8,
+      "title": "Peer Handshake Age",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 5, "w": 18, "x": 6, "y": 31 },
+      "targets": [
+        { "refId": "A", "expr": "time() - wg_peer_latest_handshake_seconds", "legendFormat": "peer {{peer}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 120 }, { "color": "red", "value": 300 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" }
+    },
+    {
+      "id": 9,
+      "title": "Peer Handshake Age Over Time",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "targets": [
+        { "refId": "A", "expr": "time() - wg_peer_latest_handshake_seconds", "legendFormat": "peer {{peer}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 0, "showPoints": "never" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 120 }, { "color": "red", "value": 300 } ] } },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "title": "Peer Throughput",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "targets": [
+        { "refId": "A", "expr": "rate(wg_peer_rx_bytes_total[5m])", "legendFormat": "peer {{peer}} rx" },
+        { "refId": "B", "expr": "rate(wg_peer_tx_bytes_total[5m])", "legendFormat": "peer {{peer}} tx" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+    }
+  ]
+}
