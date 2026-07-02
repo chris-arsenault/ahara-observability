@@ -57,6 +57,20 @@
         "type": "textbox",
         "query": "",
         "current": { "selected": false, "text": "", "value": "" }
+      },
+      {
+        "name": "focus_trace_id",
+        "label": "Focus trace_id",
+        "type": "textbox",
+        "query": "__paste_trace_id__",
+        "current": { "selected": false, "text": "__paste_trace_id__", "value": "__paste_trace_id__" }
+      },
+      {
+        "name": "focus_span_id",
+        "label": "Focus span_id",
+        "type": "textbox",
+        "query": ".*",
+        "current": { "selected": false, "text": ".*", "value": ".*" }
       }
     ]
   },
@@ -175,17 +189,38 @@
     {
       "id": 200,
       "type": "row",
-      "title": "Logs",
+      "title": "Trace Logs",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 }
     },
     {
       "id": 8,
-      "title": "Log Stream",
+      "title": "Trace Operations",
       "type": "logs",
       "datasource": { "type": "loki", "uid": "loki" },
-      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 21 },
+      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 21 },
       "targets": [
-        { "refId": "A", "expr": "{service_name=~\"$service_name\", service_name!=\"ahara-ec2\", level=~\"$level\"} |~ `(?i)$search`" }
+        { "refId": "A", "expr": "{service_name=~\"$service_name\", service_name!=\"ahara-ec2\", level=~\"$level\"} | json | attributes_operation_name=~\".+\" |~ `(?i)$search` | line_format `traceid={{.traceid}} spanid={{.spanid}} op={{.attributes_operation_name}} outcome={{.attributes_event_outcome}}{{if .attributes_duration_ms}} duration={{.attributes_duration_ms}}ms{{end}}{{if .attributes_operation_details}} details={{.attributes_operation_details}}{{end}}`" }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showUniqueLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 9,
+      "title": "Selected Trace / Span Raw Log",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 34 },
+      "targets": [
+        { "refId": "A", "expr": "{service_name=~\"$service_name\", service_name!=\"ahara-ec2\", level=~\"$level\"} | json | traceid=\"$focus_trace_id\" | spanid=~\"$focus_span_id\" |~ `(?i)$search`" }
       ],
       "options": {
         "dedupStrategy": "none",
