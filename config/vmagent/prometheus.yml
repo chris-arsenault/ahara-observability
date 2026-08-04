@@ -37,3 +37,12 @@ scrape_configs:
     static_configs:
       - targets:
           - node-exporter:9100
+
+  # VP2440 gateway: host metrics plus WireGuard tunnel and Suricata
+  # inspection textfile collectors.
+  - job_name: vp2440
+    static_configs:
+      - targets:
+          - 192.168.66.1:9100
+        labels:
+          host: vp2440
