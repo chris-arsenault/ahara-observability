@@ -38,11 +38,12 @@ scrape_configs:
       - targets:
           - node-exporter:9100
 
-  # VP2440 gateway: host metrics plus WireGuard tunnel and Suricata
-  # inspection textfile collectors.
-  - job_name: vp2440
+  # The gateway appliance: host metrics plus WireGuard tunnel and Suricata
+  # inspection textfile collectors. The label is the role, not the hardware —
+  # the gateway dashboards select on host="gateway".
+  - job_name: gateway
     static_configs:
       - targets:
           - 192.168.66.1:9100
         labels:
-          host: vp2440
+          host: gateway
