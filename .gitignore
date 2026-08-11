@@ -1,3 +1,4 @@
 .env
 .DS_Store
 migration-artifacts/
+plugins/ahara-source-panel/node_modules/

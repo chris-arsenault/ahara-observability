@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "panel",
+  "name": "Ahara Source Viewer",
+  "id": "ahara-source-panel",
+  "info": {
+    "keywords": ["source", "quality", "qlty"],
+    "description": "Render immutable analyzed source with quality hotspots.",
+    "author": {
+      "name": "Ahara"
+    },
+    "links": [],
+    "screenshots": [],
+    "version": "1.0.0",
+    "updated": "2026-08-10"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=12.3.0",
+    "plugins": []
+  }
+}

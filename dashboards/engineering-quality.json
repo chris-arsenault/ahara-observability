@@ -1,0 +1,568 @@
+{
+  "id": null,
+  "uid": "ahara-engineering-quality",
+  "title": "Ahara Engineering Quality",
+  "tags": ["ahara", "engineering", "quality", "qlty"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 41,
+  "refresh": "5m",
+  "time": { "from": "now-90d", "to": "now" },
+  "links": [
+    {
+      "title": "Ahara dashboards",
+      "type": "dashboards",
+      "tags": ["ahara"],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "apps"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "repo",
+        "label": "Repository",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "engineering-quality"
+        },
+        "definition": "SELECT DISTINCT repo AS __text, repo AS __value FROM quality_scan WHERE status = 'complete' ORDER BY repo",
+        "query": "SELECT DISTINCT repo AS __text, repo AS __value FROM quality_scan WHERE status = 'complete' ORDER BY repo",
+        "includeAll": false,
+        "multi": false,
+        "current": {},
+        "refresh": 1,
+        "sort": 1
+      },
+      {
+        "name": "branch",
+        "label": "Branch",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "engineering-quality"
+        },
+        "definition": "SELECT DISTINCT branch AS __text, branch AS __value FROM quality_scan WHERE repo = ${repo:sqlstring} AND status = 'complete' ORDER BY branch",
+        "query": "SELECT DISTINCT branch AS __text, branch AS __value FROM quality_scan WHERE repo = ${repo:sqlstring} AND status = 'complete' ORDER BY branch",
+        "includeAll": false,
+        "multi": false,
+        "current": {},
+        "refresh": 2,
+        "sort": 1
+      },
+      {
+        "name": "commit",
+        "label": "Commit",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "engineering-quality"
+        },
+        "definition": "SELECT LEFT(commit_sha, 12) || ' · ' || TO_CHAR(completed_at, 'YYYY-MM-DD HH24:MI') AS __text, commit_sha AS __value FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND status = 'complete' ORDER BY completed_at DESC",
+        "query": "SELECT LEFT(commit_sha, 12) || ' · ' || TO_CHAR(completed_at, 'YYYY-MM-DD HH24:MI') AS __text, commit_sha AS __value FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND status = 'complete' ORDER BY completed_at DESC",
+        "includeAll": false,
+        "multi": false,
+        "current": {},
+        "refresh": 2,
+        "sort": 0
+      },
+      {
+        "name": "source_path",
+        "label": "Source path",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "" },
+        "hide": 2
+      },
+      {
+        "name": "source_start",
+        "label": "Source start line",
+        "type": "textbox",
+        "query": "1",
+        "current": { "text": "1", "value": "1" },
+        "hide": 2
+      },
+      {
+        "name": "source_end",
+        "label": "Source end line",
+        "type": "textbox",
+        "query": "1",
+        "current": { "text": "1", "value": "1" },
+        "hide": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Build",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CASE WHEN status = 'success' THEN 1 ELSE 0 END AS value FROM ci_run WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} ORDER BY created_at DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Failed", "color": "red" },
+                "1": { "text": "Passed", "color": "green" }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Failed Tests",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(tests_failed, 0) AS value FROM ci_run WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} ORDER BY created_at DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Line Coverage",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT coverage_line_rate * 100 AS value FROM ci_run WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} ORDER BY created_at DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Technical Debt",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT debt_minutes AS value FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "m", "decimals": 0 },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Complexity and Debt Trend",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT completed_at AS time, complexity AS \"Cognitive complexity\", cyclomatic AS \"Cyclomatic complexity\", debt_minutes AS \"Debt minutes\" FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND status = 'complete' AND $__timeFilter(completed_at) ORDER BY completed_at"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "showPoints": "auto" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Coverage and Test Failures",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT created_at AS time, coverage_line_rate * 100 AS \"Coverage %\", COALESCE(tests_failed, 0) AS \"Failed tests\" FROM ci_run WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND $__timeFilter(created_at) ORDER BY created_at"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "showPoints": "auto" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Coverage %" },
+            "properties": [{ "id": "unit", "value": "percent" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Failed tests" },
+            "properties": [{ "id": "custom.axisPlacement", "value": "right" }]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 7,
+      "title": "File Hotspots",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 13 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_metric.duplicated_lines AS \"Duplicated lines\", current_metric.debt_minutes AS \"Debt min\", current_metric.finding_count AS \"Findings\", current_scan.repo, current_scan.commit_sha, 1 AS start_line, GREATEST(current_metric.lines, 1) AS end_line FROM current_scan JOIN quality_file_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_file_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.path = current_metric.path ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 200"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "File" },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View analyzed source",
+                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&viewPanel=11",
+                    "targetBlank": false
+                  },
+                  {
+                    "title": "Open on GitHub",
+                    "url": "https://github.com/${__data.fields.repo}/blob/${__data.fields.commit_sha}/${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "repo" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "commit_sha" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "start_line" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "end_line" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Cognitive", "desc": true }]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Function Hotspots",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.symbol AS \"Function\", current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_scan.repo, current_scan.commit_sha, COALESCE(current_metric.start_line, 1) AS start_line, COALESCE(current_metric.start_line, 1) + GREATEST(current_metric.lines, 1) - 1 AS end_line FROM current_scan JOIN quality_function_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_function_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.metric_key = current_metric.metric_key ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "File" },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View analyzed source",
+                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&viewPanel=11",
+                    "targetBlank": false
+                  },
+                  {
+                    "title": "Open on GitHub",
+                    "url": "https://github.com/${__data.fields.repo}/blob/${__data.fields.commit_sha}/${__value.raw}#L${__data.fields.start_line}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "repo" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "commit_sha" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "start_line" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "end_line" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Cognitive", "desc": true }]
+      }
+    },
+    {
+      "id": 9,
+      "title": "Maintainability Findings",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT finding.level AS \"Level\", finding.category AS \"Category\", finding.rule_key AS \"Rule\", finding.path AS \"File\", COALESCE(finding.start_line, 1) AS \"Line\", finding.effort_minutes AS \"Debt min\", finding.message AS \"Message\", scan.repo, scan.commit_sha, COALESCE(finding.start_line, 1) AS start_line, COALESCE(finding.end_line, finding.start_line, 1) AS end_line FROM quality_scan scan JOIN quality_finding finding ON finding.scan_id = scan.scan_id WHERE scan.repo = ${repo:sqlstring} AND scan.branch = ${branch:sqlstring} AND scan.commit_sha = ${commit:sqlstring} AND scan.status = 'complete' ORDER BY finding.effort_minutes DESC NULLS LAST, finding.path, finding.start_line LIMIT 200"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "File" },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View analyzed source",
+                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&viewPanel=11",
+                    "targetBlank": false
+                  },
+                  {
+                    "title": "Open on GitHub",
+                    "url": "https://github.com/${__data.fields.repo}/blob/${__data.fields.commit_sha}/${__value.raw}#L${__data.fields.start_line}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "repo" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "commit_sha" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "start_line" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "end_line" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Debt min", "desc": true }]
+      }
+    },
+    {
+      "id": 10,
+      "title": "Test Suites",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT suite.framework AS \"Framework\", suite.name AS \"Suite\", suite.tests AS \"Tests\", suite.passed AS \"Passed\", suite.failures + suite.errors AS \"Failed\", suite.skipped AS \"Skipped\", suite.duration_ms AS \"Duration ms\" FROM ci_run run JOIN test_suite suite ON suite.run_id = run.run_id WHERE run.repo = ${repo:sqlstring} AND run.branch = ${branch:sqlstring} AND run.commit_sha = ${commit:sqlstring} ORDER BY suite.failures + suite.errors DESC, suite.duration_ms DESC NULLS LAST"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Failed" },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "red", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Duration ms" },
+            "properties": [{ "id": "unit", "value": "ms" }]
+          }
+        ]
+      },
+      "options": { "showHeader": true }
+    },
+    {
+      "id": 11,
+      "title": "Analyzed Source",
+      "type": "ahara-source-panel",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "engineering-quality"
+      },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 42 },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, commit_sha FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1) SELECT current_scan.repo AS repo, current_scan.commit_sha AS commit, source.path, source.language, source.content AS source, COALESCE(NULLIF(${source_start:sqlstring}, '')::integer, 1) AS start_line, COALESCE(NULLIF(${source_end:sqlstring}, '')::integer, COALESCE(NULLIF(${source_start:sqlstring}, '')::integer, 1)) AS end_line, COALESCE((SELECT jsonb_agg(jsonb_build_object('startLine', COALESCE(finding.start_line, 1), 'endLine', COALESCE(finding.end_line, finding.start_line, 1), 'level', finding.level, 'message', finding.message) ORDER BY finding.start_line) FROM quality_finding finding WHERE finding.scan_id = current_scan.scan_id AND finding.path = source.path), '[]'::jsonb)::text AS hotspot_lines FROM current_scan JOIN quality_scan_source scan_source ON scan_source.scan_id = current_scan.scan_id JOIN quality_source source ON source.repo = scan_source.repo AND source.commit_sha = scan_source.commit_sha AND source.path = scan_source.path WHERE source.path = ${source_path:sqlstring}"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "fontSize": 12, "showLineNumbers": true }
+    }
+  ],
+  "annotations": { "list": [] }
+}

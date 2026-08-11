@@ -1,6 +1,20 @@
 apiVersion: 1
 
 datasources:
+  - name: Engineering Quality
+    uid: engineering-quality
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: 192.168.66.3:5432
+    user: ${ENGINEERING_QUALITY_DB_USER}
+    jsonData:
+      database: ${ENGINEERING_QUALITY_DB_NAME}
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: ${ENGINEERING_QUALITY_DB_PASSWORD}
+
   - name: VictoriaMetrics
     uid: victoriametrics
     type: prometheus

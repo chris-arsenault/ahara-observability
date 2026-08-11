@@ -24,8 +24,9 @@ Komodo to deploy upstream images directly.
 make ci
 ```
 
-The check validates `compose.yaml` with `.env.example`, parses JSON dashboards,
-and verifies required config files exist.
+The check validates `compose.yaml` with `.env.example`, builds and type-checks
+the source-viewer panel, parses JSON dashboards, and verifies required config
+files exist.
 
 ## Deployment Modes
 
@@ -55,6 +56,7 @@ can pivot fleet → service → trace → log without leaving Grafana.
 | `Ahara Infrastructure Logs` | EC2 host and network logs (nat/wireguard/reverse-proxy: nginx, sshd, kernel, audit, WireGuard, cloud-init). Pre-filters ALB health checks and Grafana's own polling by default (~99% of raw `nginx-access` volume) via a "Noise filter" toggle; raw volume by source stays visible above the log stream for context. |
 | `Ahara IoT / House Sensors` | The `house_sensors_*` polling pipeline: poll/influx outcomes, devices, collection-loop and job latency. |
 | `Ahara Pipeline Health` | Telemetry-pipeline health: scrape-target `up`, Tempo/Loki/VictoriaMetrics ingest and discards, and Alloy collector receiver/exporter/queue metrics split by `instance`. |
+| `Ahara Engineering Quality` | CI checks, JUnit suites, LCOV coverage, Qlty complexity/debt trends, change-aware hotspots, and syntax-highlighted exact-commit source from the engineering PostgreSQL tenant. |
 | `Ahara Storage Volume` | Local ingest rates, filesystem capacity, disk write throughput, VM on-disk size, cardinality churn, and scrape health. |
 | `Ahara Network Health` | AWS network host health (CPU/mem/disk/network for NAT, WireGuard, reverse proxy) and WireGuard tunnel status (interface up/down, peer handshake age, peer throughput). |
 
@@ -67,6 +69,12 @@ Metric names follow the producer's OTLP→Prometheus naming, including the
 `ahara_http_server_request_duration_ms_milliseconds_bucket`). Note that
 `service_namespace` is **not** currently emitted as a label — filter on
 `service_name` instead.
+
+The `Engineering Quality` PostgreSQL datasource uses the read-only role at
+`/ahara/truenas-db/ahara-observability/engineering/reader/*`. CI ingest uses
+the sibling application role; Grafana cannot modify engineering data. Qlty
+source is retained with each scan so the unsigned, locally mounted
+`ahara-source-panel` never needs a Git-host credential in the browser.
 
 ## Product Dashboards
 
