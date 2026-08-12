@@ -7,9 +7,11 @@ compose-config:
 
 dashboards:
 	find dashboards -name '*.json' -print0 | xargs -0 -n1 jq empty
+	jq -e '([.panels[] | .fieldConfig.overrides[]? | .properties[]? | select(.id == "links") | .value[] | select(.title == "Inspect source in dashboard")]) as $$links | (($$links | length) == 3) and all($$links[]; (.targetBlank == false) and (.url | contains("viewPanel=") | not) and (.url | contains("var-source_kind=")) and (.url | contains("var-source_label="))) and ((.panels[] | select(.id == 11) | .targets[0].rawSql) | contains("finding_annotations")) and ((.panels[] | select(.id == 11) | .gridPos.y) < (.panels[] | select(.id == 10) | .gridPos.y))' dashboards/engineering-quality.json >/dev/null
 
 plugin:
 	npm --prefix plugins/ahara-source-panel ci
+	npm --prefix plugins/ahara-source-panel test
 	npm --prefix plugins/ahara-source-panel run typecheck
 	npm --prefix plugins/ahara-source-panel run build
 	test -f plugins/ahara-source-panel/dist/module.js

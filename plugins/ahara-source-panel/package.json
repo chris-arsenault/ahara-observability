@@ -1,9 +1,11 @@
 {
   "name": "ahara-source-panel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "webpack --mode production",
+    "test": "node --test src/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

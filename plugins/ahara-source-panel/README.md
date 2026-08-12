@@ -5,7 +5,12 @@ row of a datasource frame with these fields:
 
 - `repo`, `commit`, `path`, `language`, and `source`
 - `start_line` and `end_line`
-- `hotspot_lines`, a JSON array of `{startLine, endLine, level, message}`
+- `selection_kind`, `selection_label`, `selection_cognitive`, and
+  `selection_cyclomatic`
+- `finding_annotations`, a JSON array of Qlty findings with source locations,
+  severity, rule, category, effort, and message
 
-The panel highlights the selected range, overlays every Qlty finding for the
-file, and links to the same line at the analyzed Git commit.
+The panel labels and highlights the selected complexity range, renders every
+Qlty finding in a visible annotation rail and source gutter, and links to the
+same line at the analyzed Git commit. It explicitly distinguishes files with no
+Qlty findings from failures to load finding data.

@@ -5,14 +5,14 @@
   "id": "ahara-source-panel",
   "info": {
     "keywords": ["source", "quality", "qlty"],
-    "description": "Render immutable analyzed source with quality hotspots.",
+    "description": "Render immutable analyzed source with visible Qlty findings.",
     "author": {
       "name": "Ahara"
     },
     "links": [],
     "screenshots": [],
-    "version": "1.0.0",
-    "updated": "2026-08-10"
+    "version": "1.0.1",
+    "updated": "2026-08-12"
   },
   "dependencies": {
     "grafanaDependency": ">=12.3.0",

@@ -93,6 +93,38 @@
         "query": "1",
         "current": { "text": "1", "value": "1" },
         "hide": 2
+      },
+      {
+        "name": "source_kind",
+        "label": "Source selection kind",
+        "type": "textbox",
+        "query": "Selected range",
+        "current": { "text": "Selected range", "value": "Selected range" },
+        "hide": 2
+      },
+      {
+        "name": "source_label",
+        "label": "Source selection label",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "" },
+        "hide": 2
+      },
+      {
+        "name": "source_cognitive",
+        "label": "Selected cognitive complexity",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "" },
+        "hide": 2
+      },
+      {
+        "name": "source_cyclomatic",
+        "label": "Selected cyclomatic complexity",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "" },
+        "hide": 2
       }
     ]
   },
@@ -321,7 +353,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_metric.duplicated_lines AS \"Duplicated lines\", current_metric.debt_minutes AS \"Debt min\", current_metric.finding_count AS \"Findings\", current_scan.repo, current_scan.commit_sha, 1 AS start_line, GREATEST(current_metric.lines, 1) AS end_line FROM current_scan JOIN quality_file_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_file_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.path = current_metric.path ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 200"
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_metric.duplicated_lines AS \"Duplicated lines\", current_metric.debt_minutes AS \"Debt min\", current_metric.finding_count AS \"Findings\", current_scan.repo, current_scan.commit_sha, 1 AS start_line, GREATEST(current_metric.lines, 1) AS end_line, 'File hotspot' AS selection_kind, current_metric.path AS selection_label, current_metric.complexity AS selection_cognitive, current_metric.cyclomatic AS selection_cyclomatic FROM current_scan JOIN quality_file_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_file_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.path = current_metric.path ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 200"
         }
       ],
       "fieldConfig": {
@@ -334,8 +366,8 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "View analyzed source",
-                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&viewPanel=11",
+                    "title": "Inspect source in dashboard",
+                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&var-source_kind=${__data.fields.selection_kind}&var-source_label=${__data.fields.selection_label}&var-source_cognitive=${__data.fields.selection_cognitive}&var-source_cyclomatic=${__data.fields.selection_cyclomatic}",
                     "targetBlank": false
                   },
                   {
@@ -362,6 +394,22 @@
           {
             "matcher": { "id": "byName", "options": "end_line" },
             "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_kind" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_label" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_cognitive" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_cyclomatic" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
           }
         ]
       },
@@ -385,7 +433,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.symbol AS \"Function\", current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_scan.repo, current_scan.commit_sha, COALESCE(current_metric.start_line, 1) AS start_line, COALESCE(current_metric.start_line, 1) + GREATEST(current_metric.lines, 1) - 1 AS end_line FROM current_scan JOIN quality_function_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_function_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.metric_key = current_metric.metric_key ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 100"
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.symbol AS \"Function\", current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_scan.repo, current_scan.commit_sha, COALESCE(current_metric.start_line, 1) AS start_line, COALESCE(current_metric.start_line, 1) + GREATEST(current_metric.lines, 1) - 1 AS end_line, 'Function hotspot' AS selection_kind, current_metric.symbol AS selection_label, current_metric.complexity AS selection_cognitive, current_metric.cyclomatic AS selection_cyclomatic FROM current_scan JOIN quality_function_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_function_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.metric_key = current_metric.metric_key ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 100"
         }
       ],
       "fieldConfig": {
@@ -398,8 +446,8 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "View analyzed source",
-                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&viewPanel=11",
+                    "title": "Inspect source in dashboard",
+                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&var-source_kind=${__data.fields.selection_kind}&var-source_label=${__data.fields.selection_label}&var-source_cognitive=${__data.fields.selection_cognitive}&var-source_cyclomatic=${__data.fields.selection_cyclomatic}",
                     "targetBlank": false
                   },
                   {
@@ -425,6 +473,22 @@
           },
           {
             "matcher": { "id": "byName", "options": "end_line" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_kind" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_label" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_cognitive" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_cyclomatic" },
             "properties": [{ "id": "custom.hidden", "value": true }]
           }
         ]
@@ -449,7 +513,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT finding.level AS \"Level\", finding.category AS \"Category\", finding.rule_key AS \"Rule\", finding.path AS \"File\", COALESCE(finding.start_line, 1) AS \"Line\", finding.effort_minutes AS \"Debt min\", finding.message AS \"Message\", scan.repo, scan.commit_sha, COALESCE(finding.start_line, 1) AS start_line, COALESCE(finding.end_line, finding.start_line, 1) AS end_line FROM quality_scan scan JOIN quality_finding finding ON finding.scan_id = scan.scan_id WHERE scan.repo = ${repo:sqlstring} AND scan.branch = ${branch:sqlstring} AND scan.commit_sha = ${commit:sqlstring} AND scan.status = 'complete' ORDER BY finding.effort_minutes DESC NULLS LAST, finding.path, finding.start_line LIMIT 200"
+          "rawSql": "SELECT finding.level AS \"Level\", finding.category AS \"Category\", finding.rule_key AS \"Rule\", finding.path AS \"File\", COALESCE(finding.start_line, 1) AS \"Line\", finding.effort_minutes AS \"Debt min\", finding.message AS \"Message\", scan.repo, scan.commit_sha, COALESCE(finding.start_line, 1) AS start_line, COALESCE(finding.end_line, finding.start_line, 1) AS end_line, 'Qlty finding' AS selection_kind, finding.rule_key AS selection_label, NULL::integer AS selection_cognitive, NULL::integer AS selection_cyclomatic FROM quality_scan scan JOIN quality_finding finding ON finding.scan_id = scan.scan_id WHERE scan.repo = ${repo:sqlstring} AND scan.branch = ${branch:sqlstring} AND scan.commit_sha = ${commit:sqlstring} AND scan.status = 'complete' ORDER BY finding.effort_minutes DESC NULLS LAST, finding.path, finding.start_line LIMIT 200"
         }
       ],
       "fieldConfig": {
@@ -462,8 +526,8 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "View analyzed source",
-                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&viewPanel=11",
+                    "title": "Inspect source in dashboard",
+                    "url": "/d/ahara-engineering-quality/ahara-engineering-quality?var-repo=${repo}&var-branch=${branch}&var-commit=${commit}&var-source_path=${__value.raw}&var-source_start=${__data.fields.start_line}&var-source_end=${__data.fields.end_line}&var-source_kind=${__data.fields.selection_kind}&var-source_label=${__data.fields.selection_label}&var-source_cognitive=${__data.fields.selection_cognitive}&var-source_cyclomatic=${__data.fields.selection_cyclomatic}",
                     "targetBlank": false
                   },
                   {
@@ -490,6 +554,22 @@
           {
             "matcher": { "id": "byName", "options": "end_line" },
             "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_kind" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_label" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_cognitive" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "selection_cyclomatic" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
           }
         ]
       },
@@ -506,7 +586,7 @@
         "type": "grafana-postgresql-datasource",
         "uid": "engineering-quality"
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 54 },
       "targets": [
         {
           "refId": "A",
@@ -550,14 +630,14 @@
         "type": "grafana-postgresql-datasource",
         "uid": "engineering-quality"
       },
-      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 42 },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 34 },
       "targets": [
         {
           "refId": "A",
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, commit_sha FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1) SELECT current_scan.repo AS repo, current_scan.commit_sha AS commit, source.path, source.language, source.content AS source, COALESCE(NULLIF(${source_start:sqlstring}, '')::integer, 1) AS start_line, COALESCE(NULLIF(${source_end:sqlstring}, '')::integer, COALESCE(NULLIF(${source_start:sqlstring}, '')::integer, 1)) AS end_line, COALESCE((SELECT jsonb_agg(jsonb_build_object('startLine', COALESCE(finding.start_line, 1), 'endLine', COALESCE(finding.end_line, finding.start_line, 1), 'level', finding.level, 'message', finding.message) ORDER BY finding.start_line) FROM quality_finding finding WHERE finding.scan_id = current_scan.scan_id AND finding.path = source.path), '[]'::jsonb)::text AS hotspot_lines FROM current_scan JOIN quality_scan_source scan_source ON scan_source.scan_id = current_scan.scan_id JOIN quality_source source ON source.repo = scan_source.repo AND source.commit_sha = scan_source.commit_sha AND source.path = scan_source.path WHERE source.path = ${source_path:sqlstring}"
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, commit_sha FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1) SELECT current_scan.repo AS repo, current_scan.commit_sha AS commit, source.path, source.language, source.content AS source, COALESCE(NULLIF(${source_start:sqlstring}, '')::integer, 1) AS start_line, COALESCE(NULLIF(${source_end:sqlstring}, '')::integer, COALESCE(NULLIF(${source_start:sqlstring}, '')::integer, 1)) AS end_line, ${source_kind:sqlstring} AS selection_kind, ${source_label:sqlstring} AS selection_label, NULLIF(${source_cognitive:sqlstring}, '')::integer AS selection_cognitive, NULLIF(${source_cyclomatic:sqlstring}, '')::integer AS selection_cyclomatic, COALESCE((SELECT jsonb_agg(jsonb_build_object('startLine', COALESCE(finding.start_line, 1), 'endLine', COALESCE(finding.end_line, finding.start_line, 1), 'level', finding.level, 'category', finding.category, 'ruleKey', finding.rule_key, 'effortMinutes', finding.effort_minutes, 'message', finding.message) ORDER BY finding.start_line) FROM quality_finding finding WHERE finding.scan_id = current_scan.scan_id AND finding.path = source.path), '[]'::jsonb)::text AS finding_annotations FROM current_scan JOIN quality_scan_source scan_source ON scan_source.scan_id = current_scan.scan_id JOIN quality_source source ON source.repo = scan_source.repo AND source.commit_sha = scan_source.commit_sha AND source.path = scan_source.path WHERE source.path = ${source_path:sqlstring}"
         }
       ],
       "fieldConfig": { "defaults": {}, "overrides": [] },

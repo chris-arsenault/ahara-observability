@@ -3,9 +3,12 @@ export interface SourcePanelOptions {
   showLineNumbers: boolean;
 }
 
-export interface HotspotLine {
+export interface FindingAnnotation {
   startLine: number;
   endLine?: number;
   level?: string;
+  category?: string;
+  ruleKey?: string;
+  effortMinutes?: number;
   message?: string;
 }
