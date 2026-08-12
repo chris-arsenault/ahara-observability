@@ -340,7 +340,8 @@
     },
     {
       "id": 7,
-      "title": "File Hotspots",
+      "title": "File-Level Risks",
+      "description": "Files with growth, duplication, high complexity density, poor cohesion, or enough size to deserve architectural review. First scans show no fabricated change value.",
       "type": "table",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -353,7 +354,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_metric.duplicated_lines AS \"Duplicated lines\", current_metric.debt_minutes AS \"Debt min\", current_metric.finding_count AS \"Findings\", current_scan.repo, current_scan.commit_sha, 1 AS start_line, GREATEST(current_metric.lines, 1) AS end_line, 'File hotspot' AS selection_kind, current_metric.path AS selection_label, current_metric.complexity AS selection_cognitive, current_metric.cyclomatic AS selection_cyclomatic FROM current_scan JOIN quality_file_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_file_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.path = current_metric.path ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 200"
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1), worst_functions AS (SELECT DISTINCT ON (function_metric.path) function_metric.path, function_metric.symbol, function_metric.complexity FROM current_scan JOIN quality_function_metric function_metric ON function_metric.scan_id = current_scan.scan_id ORDER BY function_metric.path, function_metric.complexity DESC, function_metric.cyclomatic DESC), ranked AS (SELECT current_metric.*, CASE WHEN previous_metric.scan_id IS NULL THEN NULL ELSE current_metric.complexity - previous_metric.complexity END AS complexity_change, COALESCE(worst_function.symbol, '—') AS worst_function, COALESCE(worst_function.complexity, 0) AS worst_function_complexity FROM current_scan JOIN quality_file_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_file_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.path = current_metric.path LEFT JOIN worst_functions worst_function ON worst_function.path = current_metric.path) SELECT ranked.path AS \"File\", ranked.code_lines AS \"LOC\", ROUND(ranked.complexity * 100.0 / NULLIF(ranked.code_lines, 0), 1) AS \"Cognitive / 100 LOC\", ranked.complexity_change AS \"Complexity change\", ROUND(ranked.duplicated_lines * 100.0 / NULLIF(ranked.code_lines, 0), 1) AS \"Duplication %\", ranked.lcom4 AS \"LCOM4\", ranked.worst_function AS \"Worst function\", ranked.worst_function_complexity AS \"Worst cognitive\", current_scan.repo, current_scan.commit_sha, 1 AS start_line, GREATEST(ranked.lines, 1) AS end_line, 'File risk' AS selection_kind, ranked.path AS selection_label, ranked.complexity AS selection_cognitive, ranked.cyclomatic AS selection_cyclomatic FROM current_scan JOIN ranked ON TRUE WHERE ranked.complexity_change > 0 OR ranked.duplicated_lines > 0 OR ranked.code_lines >= 200 OR ranked.lcom4 > 1 OR (ranked.code_lines >= 50 AND ranked.complexity * 100.0 / NULLIF(ranked.code_lines, 0) >= 10) ORDER BY ranked.complexity_change DESC NULLS LAST, ranked.duplicated_lines * 100.0 / NULLIF(ranked.code_lines, 0) DESC NULLS LAST, ranked.complexity * 100.0 / NULLIF(ranked.code_lines, 0) DESC NULLS LAST, ranked.complexity DESC LIMIT 100"
         }
       ],
       "fieldConfig": {
@@ -415,12 +416,13 @@
       },
       "options": {
         "showHeader": true,
-        "sortBy": [{ "displayName": "Cognitive", "desc": true }]
+        "sortBy": [{ "displayName": "Complexity change", "desc": true }]
       }
     },
     {
       "id": 8,
-      "title": "Function Hotspots",
+      "title": "Complex Functions",
+      "description": "Only functions that crossed Qlty's function-complexity threshold. Each row uses the exact range from that finding rather than an unrelated smell or a line-1 fallback.",
       "type": "table",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -433,7 +435,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.symbol AS \"Function\", current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", current_metric.complexity - COALESCE(previous_metric.complexity, 0) AS \"Change\", current_metric.cyclomatic AS \"Cyclomatic\", current_scan.repo, current_scan.commit_sha, COALESCE(current_metric.start_line, 1) AS start_line, COALESCE(current_metric.start_line, 1) + GREATEST(current_metric.lines, 1) - 1 AS end_line, 'Function hotspot' AS selection_kind, current_metric.symbol AS selection_label, current_metric.complexity AS selection_cognitive, current_metric.cyclomatic AS selection_cyclomatic FROM current_scan JOIN quality_function_metric current_metric ON current_metric.scan_id = current_scan.scan_id LEFT JOIN quality_function_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.metric_key = current_metric.metric_key ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 100"
+          "rawSql": "WITH current_scan AS (SELECT scan_id, repo, branch, commit_sha, completed_at FROM quality_scan WHERE repo = ${repo:sqlstring} AND branch = ${branch:sqlstring} AND commit_sha = ${commit:sqlstring} AND status = 'complete' ORDER BY completed_at DESC LIMIT 1), previous_scan AS (SELECT quality_scan.scan_id FROM quality_scan, current_scan WHERE quality_scan.repo = current_scan.repo AND quality_scan.branch = current_scan.branch AND quality_scan.status = 'complete' AND quality_scan.completed_at < current_scan.completed_at ORDER BY quality_scan.completed_at DESC LIMIT 1) SELECT current_metric.symbol AS \"Function\", current_metric.path AS \"File\", current_metric.code_lines AS \"LOC\", current_metric.complexity AS \"Cognitive\", CASE WHEN previous_metric.scan_id IS NULL THEN NULL ELSE current_metric.complexity - previous_metric.complexity END AS \"Complexity change\", current_metric.cyclomatic AS \"Cyclomatic\", ROUND(current_metric.complexity * 100.0 / NULLIF(current_metric.code_lines, 0), 1) AS \"Cognitive / 100 LOC\", current_scan.repo, current_scan.commit_sha, function_finding.start_line, function_finding.end_line, 'Complex function' AS selection_kind, current_metric.symbol AS selection_label, current_metric.complexity AS selection_cognitive, current_metric.cyclomatic AS selection_cyclomatic FROM current_scan JOIN quality_function_metric current_metric ON current_metric.scan_id = current_scan.scan_id JOIN LATERAL (SELECT finding.start_line, COALESCE(finding.end_line, finding.start_line) AS end_line FROM quality_finding finding WHERE finding.scan_id = current_scan.scan_id AND finding.path = current_metric.path AND finding.rule_key = 'function-complexity' AND finding.properties->'partial_fingerprints'->>'function.name' = current_metric.symbol AND finding.start_line IS NOT NULL ORDER BY finding.start_line LIMIT 1) function_finding ON TRUE LEFT JOIN quality_function_metric previous_metric ON previous_metric.scan_id = (SELECT scan_id FROM previous_scan) AND previous_metric.metric_key = current_metric.metric_key ORDER BY current_metric.complexity DESC, current_metric.cyclomatic DESC LIMIT 100"
         }
       ],
       "fieldConfig": {
@@ -500,7 +502,8 @@
     },
     {
       "id": 9,
-      "title": "Maintainability Findings",
+      "title": "Structural & Duplication Findings",
+      "description": "Actionable Qlty smells other than file/function complexity, which the adjacent risk tables already cover.",
       "type": "table",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -513,7 +516,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT finding.level AS \"Level\", finding.category AS \"Category\", finding.rule_key AS \"Rule\", finding.path AS \"File\", COALESCE(finding.start_line, 1) AS \"Line\", finding.effort_minutes AS \"Debt min\", finding.message AS \"Message\", scan.repo, scan.commit_sha, COALESCE(finding.start_line, 1) AS start_line, COALESCE(finding.end_line, finding.start_line, 1) AS end_line, 'Qlty finding' AS selection_kind, finding.rule_key AS selection_label, NULL::integer AS selection_cognitive, NULL::integer AS selection_cyclomatic FROM quality_scan scan JOIN quality_finding finding ON finding.scan_id = scan.scan_id WHERE scan.repo = ${repo:sqlstring} AND scan.branch = ${branch:sqlstring} AND scan.commit_sha = ${commit:sqlstring} AND scan.status = 'complete' ORDER BY finding.effort_minutes DESC NULLS LAST, finding.path, finding.start_line LIMIT 200"
+          "rawSql": "SELECT finding.level AS \"Level\", finding.category AS \"Category\", finding.rule_key AS \"Rule\", finding.path AS \"File\", finding.start_line AS \"Line\", finding.effort_minutes AS \"Debt min\", finding.message AS \"Message\", scan.repo, scan.commit_sha, finding.start_line, COALESCE(finding.end_line, finding.start_line) AS end_line, 'Qlty finding' AS selection_kind, finding.rule_key AS selection_label, NULL::integer AS selection_cognitive, NULL::integer AS selection_cyclomatic FROM quality_scan scan JOIN quality_finding finding ON finding.scan_id = scan.scan_id WHERE scan.repo = ${repo:sqlstring} AND scan.branch = ${branch:sqlstring} AND scan.commit_sha = ${commit:sqlstring} AND scan.status = 'complete' AND finding.rule_key NOT IN ('file-complexity', 'function-complexity') AND finding.start_line IS NOT NULL ORDER BY CASE finding.level WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END DESC, finding.effort_minutes DESC NULLS LAST, finding.path, finding.start_line LIMIT 200"
         }
       ],
       "fieldConfig": {

@@ -15,8 +15,12 @@ const LANGUAGE_ALIASES: Record<string, string> = {
 };
 
 const LEVEL_PRIORITY: Record<string, number> = {
+  critical: 3,
   error: 3,
+  high: 3,
+  medium: 2,
   warning: 2,
+  low: 1,
   note: 1,
   info: 1,
 };
@@ -64,12 +68,23 @@ export function findingsForLine(
   );
 }
 
+export function findingsOverlappingRange(
+  findings: FindingAnnotation[],
+  startLine: number,
+  endLine: number
+): FindingAnnotation[] {
+  return findings.filter((finding) => {
+    const findingEndLine = Number(finding.endLine ?? finding.startLine);
+    return finding.startLine <= endLine && findingEndLine >= startLine;
+  });
+}
+
 export function findingTone(level?: string): "error" | "warning" | "note" {
   const normalized = level?.toLowerCase() ?? "note";
-  if (normalized === "error") {
+  if (["error", "high", "critical"].includes(normalized)) {
     return "error";
   }
-  if (normalized === "warning") {
+  if (["warning", "medium"].includes(normalized)) {
     return "warning";
   }
   return "note";

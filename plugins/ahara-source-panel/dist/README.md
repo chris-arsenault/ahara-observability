@@ -10,7 +10,8 @@ row of a datasource frame with these fields:
 - `finding_annotations`, a JSON array of Qlty findings with source locations,
   severity, rule, category, effort, and message
 
-The panel labels and highlights the selected complexity range, renders every
-Qlty finding in a visible annotation rail and source gutter, and links to the
-same line at the analyzed Git commit. It explicitly distinguishes files with no
-Qlty findings from failures to load finding data.
+The panel labels and highlights the selected range. File selections render all
+Qlty findings; function and issue selections initially render only findings
+that overlap the selected range, with an explicit control to show the rest of
+the file. It links to the same line at the analyzed Git commit and distinguishes
+an empty range, a clean file, and a failure to load finding data.

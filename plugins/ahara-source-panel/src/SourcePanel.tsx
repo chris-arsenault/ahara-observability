@@ -13,10 +13,11 @@ import rust from "highlight.js/lib/languages/rust";
 import swift from "highlight.js/lib/languages/swift";
 import typescript from "highlight.js/lib/languages/typescript";
 import vbnet from "highlight.js/lib/languages/vbnet";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   findingTone,
   findingsForLine,
+  findingsOverlappingRange,
   parseFindingAnnotations,
   sourceLanguage,
   strongestFindingTone,
@@ -76,6 +77,7 @@ export const SourcePanel: React.FC<PanelProps<SourcePanelOptions>> = ({
 }) => {
   const frame = data.series[0];
   const lineElements = useRef(new Map<number, HTMLDivElement>());
+  const [showAllFileFindings, setShowAllFileFindings] = useState(false);
   const fontSize = options.fontSize || 12;
   const showLineNumbers = options.showLineNumbers !== false;
 
@@ -109,6 +111,21 @@ export const SourcePanel: React.FC<PanelProps<SourcePanelOptions>> = ({
     };
   }, [frame]);
 
+  const fileSelection = model?.selectionKind.toLowerCase().startsWith("file") ?? false;
+  const visibleFindings = useMemo(() => {
+    if (!model) {
+      return [];
+    }
+    if (fileSelection || showAllFileFindings) {
+      return model.findings;
+    }
+    return findingsOverlappingRange(model.findings, model.startLine, model.endLine);
+  }, [fileSelection, model, showAllFileFindings]);
+
+  useEffect(() => {
+    setShowAllFileFindings(false);
+  }, [model?.commit, model?.endLine, model?.path, model?.selectionKind, model?.startLine]);
+
   useEffect(() => {
     if (model) {
       lineElements.current.get(model.startLine)?.scrollIntoView({ block: "center" });
@@ -127,6 +144,7 @@ export const SourcePanel: React.FC<PanelProps<SourcePanelOptions>> = ({
   const lines = model.source.split("\n");
   const githubUrl = `https://github.com/${model.repo}/blob/${model.commit}/${model.path}`;
   const wideLayout = width >= 900;
+  const hiddenFindingCount = model.findings.length - visibleFindings.length;
 
   return (
     <div
@@ -215,8 +233,8 @@ export const SourcePanel: React.FC<PanelProps<SourcePanelOptions>> = ({
           {lines.map((line, index) => {
             const lineNumber = index + 1;
             const selected = lineNumber >= model.startLine && lineNumber <= model.endLine;
-            const lineFindings = findingsForLine(model.findings, lineNumber);
-            const startingFindings = model.findings
+            const lineFindings = findingsForLine(visibleFindings, lineNumber);
+            const startingFindings = visibleFindings
               .map((finding, findingIndex) => ({ finding, findingIndex }))
               .filter(({ finding }) => finding.startLine === lineNumber);
             const tone = strongestFindingTone(lineFindings);
@@ -262,47 +280,86 @@ export const SourcePanel: React.FC<PanelProps<SourcePanelOptions>> = ({
             flex: wideLayout ? "0 0 340px" : "0 0 42%",
           }}
         >
-          <strong>Qlty findings ({model.findings.length})</strong>
+          <div
+            style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 }}
+          >
+            <strong>
+              {fileSelection || showAllFileFindings ? "File" : "Selected range"} findings (
+              {visibleFindings.length})
+            </strong>
+            {!fileSelection && model.findings.length > 0 && (
+              <button
+                onClick={() => setShowAllFileFindings((current) => !current)}
+                style={{
+                  background: "transparent",
+                  border: "1px solid rgba(128,128,128,0.5)",
+                  borderRadius: 3,
+                  color: "inherit",
+                  cursor: "pointer",
+                  fontSize: 10,
+                  padding: "3px 6px",
+                }}
+                type="button"
+              >
+                {showAllFileFindings
+                  ? "Show selected range"
+                  : `Show all ${model.findings.length} in file`}
+              </button>
+            )}
+          </div>
           {!model.findingAnnotationsAvailable ? (
             <p style={{ color: "#f2495c", fontSize: 12, lineHeight: 1.4 }}>
               Finding annotations were not returned by the datasource. Refresh the dashboard; if
               this persists, inspect the source-panel query rather than treating the file as clean.
             </p>
-          ) : model.findings.length === 0 ? (
+          ) : visibleFindings.length === 0 ? (
             <p style={{ color: "#9e9e9e", fontSize: 12, lineHeight: 1.4 }}>
-              No Qlty findings were reported for this file. The blue range marks the selected
-              complexity hotspot; it is selection context, not a finding.
+              {model.findings.length === 0
+                ? "No Qlty findings were reported for this file."
+                : `No Qlty findings overlap this selected range; ${model.findings.length} exist elsewhere in the file.`}{" "}
+              The blue range marks selection context, not a finding.
             </p>
           ) : (
-            model.findings.map((finding, findingIndex) => {
-              const tone = findingTone(finding.level);
-              const endLine = finding.endLine ?? finding.startLine;
-              const rule = [finding.category, finding.ruleKey].filter(Boolean).join(" · ");
-              return (
-                <button
-                  className={`finding-card ${tone}`}
-                  key={`${findingIndex}-${finding.startLine}-${finding.message ?? ""}`}
-                  onClick={() =>
-                    lineElements.current.get(finding.startLine)?.scrollIntoView({ block: "center" })
-                  }
-                  type="button"
-                >
-                  <span className="finding-level">
-                    {findingIndex + 1}. {finding.level || "note"} · lines {finding.startLine}-{endLine}
-                  </span>
-                  <span className="finding-message">{finding.message || "Qlty finding"}</span>
-                  {(rule || finding.effortMinutes !== undefined) && (
-                    <span className="finding-meta">
-                      {rule}
-                      {rule && finding.effortMinutes !== undefined ? " · " : ""}
-                      {finding.effortMinutes !== undefined
-                        ? `${finding.effortMinutes} debt min`
-                        : ""}
+            <>
+              {hiddenFindingCount > 0 && (
+                <p style={{ color: "#9e9e9e", fontSize: 11, lineHeight: 1.4 }}>
+                  {hiddenFindingCount} finding{hiddenFindingCount === 1 ? " is" : "s are"}{" "}
+                  outside this range.
+                </p>
+              )}
+              {visibleFindings.map((finding, findingIndex) => {
+                const tone = findingTone(finding.level);
+                const endLine = finding.endLine ?? finding.startLine;
+                const rule = [finding.category, finding.ruleKey].filter(Boolean).join(" · ");
+                return (
+                  <button
+                    className={`finding-card ${tone}`}
+                    key={`${findingIndex}-${finding.startLine}-${finding.message ?? ""}`}
+                    onClick={() =>
+                      lineElements.current
+                        .get(finding.startLine)
+                        ?.scrollIntoView({ block: "center" })
+                    }
+                    type="button"
+                  >
+                    <span className="finding-level">
+                      {findingIndex + 1}. {finding.level || "note"} · lines {finding.startLine}-
+                      {endLine}
                     </span>
-                  )}
-                </button>
-              );
-            })
+                    <span className="finding-message">{finding.message || "Qlty finding"}</span>
+                    {(rule || finding.effortMinutes !== undefined) && (
+                      <span className="finding-meta">
+                        {rule}
+                        {rule && finding.effortMinutes !== undefined ? " · " : ""}
+                        {finding.effortMinutes !== undefined
+                          ? `${finding.effortMinutes} debt min`
+                          : ""}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </>
           )}
         </aside>
       </div>

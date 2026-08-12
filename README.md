@@ -56,7 +56,7 @@ can pivot fleet → service → trace → log without leaving Grafana.
 | `Ahara Infrastructure Logs` | EC2 host and network logs (nat/wireguard/reverse-proxy: nginx, sshd, kernel, audit, WireGuard, cloud-init). Pre-filters ALB health checks and Grafana's own polling by default (~99% of raw `nginx-access` volume) via a "Noise filter" toggle; raw volume by source stays visible above the log stream for context. |
 | `Ahara IoT / House Sensors` | The `house_sensors_*` polling pipeline: poll/influx outcomes, devices, collection-loop and job latency. |
 | `Ahara Pipeline Health` | Telemetry-pipeline health: scrape-target `up`, Tempo/Loki/VictoriaMetrics ingest and discards, and Alloy collector receiver/exporter/queue metrics split by `instance`. |
-| `Ahara Engineering Quality` | CI checks, JUnit suites, LCOV coverage, Qlty complexity/debt trends, change-aware hotspots, and syntax-highlighted exact-commit source from the engineering PostgreSQL tenant. |
+| `Ahara Engineering Quality` | CI checks, JUnit suites, LCOV coverage, Qlty trends, change-weighted file risks, thresholded complex functions, non-complexity findings, and range-scoped exact-commit source from the engineering PostgreSQL tenant. |
 | `Ahara Storage Volume` | Local ingest rates, filesystem capacity, disk write throughput, VM on-disk size, cardinality churn, and scrape health. |
 | `Ahara Network Health` | AWS network host health (CPU/mem/disk/network for NAT, WireGuard, reverse proxy) and WireGuard tunnel status (interface up/down, peer handshake age, peer throughput). |
 
