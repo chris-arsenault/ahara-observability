@@ -1,6 +1,41 @@
 x-observability-user: &observability-user "${OBSERVABILITY_UID:-2401}:${OBSERVABILITY_GID:-2401}"
 
 services:
+  # Reads this stack's secrets and exits. Grafana waits for it, then reads the
+  # files it wrote. Every other service here is a vendor image that holds no
+  # secret, so this is the only thing that needs an identity.
+  secret-fetch:
+    image: ghcr.io/chris-arsenault/ahara-observability/secret-fetch:${IMAGE_TAG:-latest}
+    container_name: ahara-secret-fetch
+    init: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      AWS_REGION: "us-east-1"
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_SDK_LOAD_CONFIG: "1"
+      AWS_RA_OBSERVABILITY_WORKLOAD_ID: "${AWS_RA_OBSERVABILITY_WORKLOAD_ID}"
+      AWS_RA_OBSERVABILITY_ENROLLMENT_URL: "${AWS_RA_OBSERVABILITY_ENROLLMENT_URL}"
+      AWS_RA_OBSERVABILITY_TRUST_ANCHOR_ARN: "${AWS_RA_OBSERVABILITY_TRUST_ANCHOR_ARN}"
+      AWS_RA_OBSERVABILITY_PROFILE_ARN: "${AWS_RA_OBSERVABILITY_PROFILE_ARN}"
+      AWS_RA_OBSERVABILITY_ENTRY_ROLE_ARN: "${AWS_RA_OBSERVABILITY_ENTRY_ROLE_ARN}"
+      AWS_RA_OBSERVABILITY_ROLE_ARN: "${AWS_RA_OBSERVABILITY_ROLE_ARN}"
+      # Written as files rather than exported, because the reader is a vendor
+      # image in another container.
+      AWS_RA_OBSERVABILITY_SECRET_DIR: /run/stack-secrets
+      AWS_RA_OBSERVABILITY_SECRET_GF_SECURITY_ADMIN_PASSWORD: "/ahara/observability/grafana-admin-password"
+      AWS_RA_OBSERVABILITY_SECRET_GF_SECURITY_SECRET_KEY: "/ahara/observability/grafana-secret-key"
+      AWS_RA_OBSERVABILITY_SECRET_GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: "/ahara/observability/grafana-cognito-client-secret"
+      AWS_RA_OBSERVABILITY_SECRET_ENGINEERING_QUALITY_DB_NAME: "/ahara/truenas-db/ahara-observability/engineering/reader/database"
+      AWS_RA_OBSERVABILITY_SECRET_ENGINEERING_QUALITY_DB_USER: "/ahara/truenas-db/ahara-observability/engineering/reader/username"
+      AWS_RA_OBSERVABILITY_SECRET_ENGINEERING_QUALITY_DB_PASSWORD: "/ahara/truenas-db/ahara-observability/engineering/reader/password"
+      AWS_RA_OBSERVABILITY_SECRET_INFLUXDB_ADMIN_TOKEN: "/ahara/observability/influxdb-admin-token"
+    volumes:
+      - stack-secrets:/run/stack-secrets
+    networks:
+      - observability
+
   grafana:
     image: grafana/grafana:12.4.4
     container_name: ahara-grafana
@@ -8,6 +43,9 @@ services:
     user: *observability-user
     restart: unless-stopped
     stop_grace_period: 30s
+    depends_on:
+      secret-fetch:
+        condition: service_completed_successfully
     security_opt:
       - no-new-privileges:true
     ports:
@@ -20,7 +58,7 @@ services:
       GF_AUTH_GENERIC_OAUTH_API_URL: "https://auth.services.ahara.io/oauth2/userInfo"
       GF_AUTH_GENERIC_OAUTH_AUTH_URL: "https://auth.services.ahara.io/oauth2/authorize"
       GF_AUTH_GENERIC_OAUTH_CLIENT_ID: "${GRAFANA_COGNITO_CLIENT_ID}"
-      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: "${GRAFANA_COGNITO_CLIENT_SECRET}"
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET__FILE: "/run/stack-secrets/GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET"
       GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_PATH: "email"
       GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
       GF_AUTH_GENERIC_OAUTH_NAME: "Ahara"
@@ -32,19 +70,16 @@ services:
       GF_LOG_LEVEL: "info"
       GF_METRICS_ENABLED: "true"
       GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "ahara-source-panel"
-      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
+      GF_SECURITY_ADMIN_PASSWORD__FILE: "/run/stack-secrets/GF_SECURITY_ADMIN_PASSWORD"
       GF_SECURITY_ADMIN_USER: "admin"
-      GF_SECURITY_SECRET_KEY: "${GRAFANA_SECRET_KEY}"
+      GF_SECURITY_SECRET_KEY__FILE: "/run/stack-secrets/GF_SECURITY_SECRET_KEY"
       GF_SERVER_DOMAIN: "dashboards.services.ahara.io"
       GF_SERVER_ROOT_URL: "https://dashboards.services.ahara.io"
       GF_USERS_AUTO_ASSIGN_ORG: "true"
       GF_USERS_AUTO_ASSIGN_ORG_ROLE: "Admin"
       GF_USERS_ALLOW_SIGN_UP: "false"
-      ENGINEERING_QUALITY_DB_NAME: "${ENGINEERING_QUALITY_DB_NAME}"
-      ENGINEERING_QUALITY_DB_PASSWORD: "${ENGINEERING_QUALITY_DB_PASSWORD}"
-      ENGINEERING_QUALITY_DB_USER: "${ENGINEERING_QUALITY_DB_USER}"
-      INFLUXDB_ADMIN_TOKEN: "${INFLUXDB_ADMIN_TOKEN}"
     volumes:
+      - stack-secrets:/run/stack-secrets:ro
       - /mnt/apps/apps/ahara-observability/grafana:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./dashboards:/var/lib/grafana/dashboards:ro
@@ -206,12 +241,14 @@ services:
       - no-new-privileges:true
     ports:
       - "18086:8086"
+    # No secret here. Every DOCKER_INFLUXDB_INIT_* variable is read once, when
+    # /var/lib/influxdb2 is empty; this volume was initialised long ago, so the
+    # admin token and password did nothing on any restart since. Re-creating
+    # this database from empty means setting them again for that one start.
     environment:
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "${INFLUXDB_ADMIN_TOKEN}"
       DOCKER_INFLUXDB_INIT_BUCKET: "env_sensors"
       DOCKER_INFLUXDB_INIT_MODE: "setup"
       DOCKER_INFLUXDB_INIT_ORG: "ahara"
-      DOCKER_INFLUXDB_INIT_PASSWORD: "${INFLUXDB_ADMIN_PASSWORD}"
       DOCKER_INFLUXDB_INIT_RETENTION: "0"
       DOCKER_INFLUXDB_INIT_USERNAME: "admin"
     volumes:
@@ -237,6 +274,12 @@ services:
       - /:/host:ro,rslave
     networks:
       - observability
+
+volumes:
+  # Written by secret-fetch, read-only everywhere else. A named volume rather
+  # than a host path, so the values never land on the NAS filesystem — which is
+  # where they used to sit, in .env (ahara-trust ADR-0002).
+  stack-secrets:
 
 networks:
   observability:

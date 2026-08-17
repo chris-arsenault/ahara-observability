@@ -1,3 +1,7 @@
+# Credentials come from files the secret-fetch container wrote, using the
+# identity the trust appliance issued it. Grafana's $__file{} reads them at
+# provisioning time, so no value passes through the deploy or the environment
+# (ahara-trust ADR-0002).
 apiVersion: 1
 
 datasources:
@@ -6,14 +10,14 @@ datasources:
     type: grafana-postgresql-datasource
     access: proxy
     url: 192.168.66.3:5432
-    user: ${ENGINEERING_QUALITY_DB_USER}
+    user: $__file{/run/stack-secrets/ENGINEERING_QUALITY_DB_USER}
     jsonData:
-      database: ${ENGINEERING_QUALITY_DB_NAME}
+      database: $__file{/run/stack-secrets/ENGINEERING_QUALITY_DB_NAME}
       sslmode: disable
       postgresVersion: 1600
       timescaledb: false
     secureJsonData:
-      password: ${ENGINEERING_QUALITY_DB_PASSWORD}
+      password: $__file{/run/stack-secrets/ENGINEERING_QUALITY_DB_PASSWORD}
 
   - name: VictoriaMetrics
     uid: victoriametrics
@@ -84,7 +88,7 @@ datasources:
       organization: ahara
       version: Flux
     secureJsonData:
-      token: ${INFLUXDB_ADMIN_TOKEN}
+      token: $__file{/run/stack-secrets/INFLUXDB_ADMIN_TOKEN}
 
   - name: voltage-data
     uid: fewxrdtvmrk00a
@@ -97,7 +101,7 @@ datasources:
       httpMode: POST
       version: InfluxQL
     secureJsonData:
-      password: ${INFLUXDB_ADMIN_TOKEN}
+      password: $__file{/run/stack-secrets/INFLUXDB_ADMIN_TOKEN}
 
   - name: environment-data
     uid: aezaej38ebf9ce
@@ -112,4 +116,4 @@ datasources:
       organization: ahara
       version: InfluxQL
     secureJsonData:
-      password: ${INFLUXDB_ADMIN_TOKEN}
+      password: $__file{/run/stack-secrets/INFLUXDB_ADMIN_TOKEN}

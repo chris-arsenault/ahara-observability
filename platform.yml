@@ -3,7 +3,14 @@ prefix: ahara-observability
 stack:
   - vendor
 truenas: true
-truenas_images: false
 truenas_compose_path: compose.yaml
 truenas_compose_check_paths:
   - compose.yaml
+# Every application here is a vendor image. The one image this repo builds
+# fetches the stack's secrets and exits, because a vendor image cannot run the
+# enrollment bootstrap as a wrapper (ahara-trust ADR-0002).
+images:
+  - secret-fetch
+truenas_roles_anywhere:
+  secret-fetch:
+    env_prefix: AWS_RA_OBSERVABILITY
