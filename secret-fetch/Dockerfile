@@ -6,13 +6,22 @@
 # them as files to a volume, and stops. Grafana reads those files; nothing is
 # delivered by the deploy and nothing is stored in Komodo (ahara-trust
 # ADR-0002).
-FROM alpine:3.22
+# Debian rather than Alpine: aws_signing_helper is published as a glibc binary
+# and will not exec against musl, which presents as "not found" and then as a
+# container that cannot read anything.
+FROM debian:trixie-slim
 
 ARG AWS_SIGNING_HELPER_VERSION=1.8.4
 ARG AWS_SIGNING_HELPER_SHA256=b7568acd6e1517a4e1adaee68d52bfd6284a0e5305677166cd83d43a07c815c9
 
 # The bootstrap is bash, and speaks to the appliance over curl and openssl.
-RUN apk add --no-cache bash ca-certificates curl openssl aws-cli
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    awscli \
+    bash \
+    ca-certificates \
+    curl \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL \
     "https://rolesanywhere.amazonaws.com/releases/${AWS_SIGNING_HELPER_VERSION}/X86_64/Linux/Amzn2023/aws_signing_helper" \
