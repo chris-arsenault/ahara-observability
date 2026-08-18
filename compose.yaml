@@ -23,7 +23,7 @@ services:
       AWS_RA_OBSERVABILITY_ROLE_ARN: "${AWS_RA_OBSERVABILITY_ROLE_ARN}"
       # Written as files rather than exported, because the reader is a vendor
       # image in another container.
-      AWS_RA_OBSERVABILITY_SECRET_DIR: /run/stack-secrets
+      AWS_RA_OBSERVABILITY_SECRETS_DIR: /run/stack-secrets
       AWS_RA_OBSERVABILITY_SECRET_GF_SECURITY_ADMIN_PASSWORD: "/ahara/observability/grafana-admin-password"
       AWS_RA_OBSERVABILITY_SECRET_GF_SECURITY_SECRET_KEY: "/ahara/observability/grafana-secret-key"
       AWS_RA_OBSERVABILITY_SECRET_GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: "/ahara/observability/grafana-cognito-client-secret"
